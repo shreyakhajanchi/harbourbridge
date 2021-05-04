@@ -170,14 +170,15 @@ func commandLine(driver, projectID, instanceID, dbName string, ioHelper *convers
 			return err
 		}
 	}
-
+        fmt.Println("will now create database....");
 	db, err := conversion.CreateDatabase(projectID, instanceID, dbName, conv, ioHelper.Out)
 	if err != nil {
 		fmt.Printf("\nCan't create database: %v\n", err)
 		return fmt.Errorf("can't create database")
 	}
-
+        fmt.Println("will now write to spanner")
 	client, err := conversion.GetClient(db)
+        panic(fmt.Errorf("started client")) 
 	if err != nil {
 		fmt.Printf("\nCan't create client for db %s: %v\n", db, err)
 		return fmt.Errorf("can't create Spanner client")

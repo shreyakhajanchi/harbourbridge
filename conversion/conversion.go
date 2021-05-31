@@ -550,13 +550,13 @@ func WriteSchemaFile(conv *internal.Conv, now time.Time, name string, out *os.Fi
 	// legal Cloud Spanner DDL (Cloud Spanner doesn't currently support comments).
 	// Change 'Comments' to false and 'ProtectIds' to true to write out a
 	// schema file that is legal Cloud Spanner DDL.
-	ddl := conv.SpSchema.GetDDL(ddl.Config{Comments: true, ProtectIds: false, Tables: true, ForeignKeys: true})
-	if len(ddl) == 0 {
-		ddl = []string{"\n-- Schema is empty -- no tables found\n"}
+	spddl := conv.SpSchema.GetDDL(ddl.Config{Comments: true, ProtectIds: true, Tables: true, ForeignKeys: true})
+	if len(spddl) == 0 {
+		spddl = []string{"\n-- Schema is empty -- no tables found\n"}
 	}
 	l := []string{
 		fmt.Sprintf("-- Schema generated %s\n", now.Format("2006-01-02 15:04:05")),
-		strings.Join(ddl, ";\n\n"),
+		strings.Join(spddl, ";\n\n"),
 		"\n",
 	}
 	if _, err := f.WriteString(strings.Join(l, "")); err != nil {
@@ -564,7 +564,29 @@ func WriteSchemaFile(conv *internal.Conv, now time.Time, name string, out *os.Fi
 		return
 	}
 	fmt.Fprintf(out, "Wrote schema to file '%s'.\n", name)
+
+	// Write another file titled name_uncommented without comments as Spanner DDL editor UI cannot process comments 
+	name = "uncommented_" + name
+	f, err = os.Create(name)
+	if err != nil {
+		fmt.Fprintf(out, "Can't create uncommented schema file %s: %v\n", name, err)
+		return
+	}
+	spddl = conv.SpSchema.GetDDL(ddl.Config{Comments: false, ProtectIds: true, Tables: true, ForeignKeys: true})
+	if len(spddl) == 0 {
+		spddl = []string{"\n-- Schema is empty -- no tables found\n"}
+	}
+	l = []string{
+		strings.Join(spddl, ";\n\n"),
+		"\n",
+	}
+	if _, err = f.WriteString(strings.Join(l, "")); err != nil {
+		fmt.Fprintf(out, "Can't write out uncommented schema file: %v\n", err)
+		return
+	}
+	fmt.Fprintf(out, "Wrote uncommented schema to file '%s'.\n", name)
 }
+
 
 // WriteSessionFile writes conv struct to a file in JSON format.
 func WriteSessionFile(conv *internal.Conv, name string, out *os.File) {

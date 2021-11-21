@@ -79,21 +79,30 @@ func ProcessSQLData(conv *internal.Conv, db *sql.DB, infoSchema InfoSchema) {
 	// TODO: refactor to use the set of tables computed by
 	// ProcessInfoSchema instead of computing them again.
 	tables, err := infoSchema.GetTables(db)
+	tableSchemaMapping := make(map[string]SchemaAndName)
 	if err != nil {
 		conv.Unexpected(fmt.Sprintf("Couldn't get list of table: %s", err))
 		return
 	}
 	for _, t := range tables {
-		srcTable := infoSchema.GetTableName(t.Schema, t.Name)
+		tableSchemaMapping[t.Name] = t
+	}
+
+	// Tables are ordered in alphabetical order with one exception: interleaved
+	// tables appear after the definition of their parent table.
+	orderTableNames := ddl.OrderTable(conv.SpSchema)
+
+	for _, spannerTable := range orderTableNames {
+		srcTable := conv.ToSource[spannerTable].Name
 		srcSchema, ok := conv.SrcSchema[srcTable]
 		if !ok {
 			conv.Stats.BadRows[srcTable] += conv.Stats.Rows[srcTable]
 			conv.Unexpected(fmt.Sprintf("Can't get schemas for table %s", srcTable))
 			continue
 		}
-		rows, err := infoSchema.GetRowsFromTable(conv, db, t)
+		rows, err := infoSchema.GetRowsFromTable(conv, db, tableSchemaMapping[srcTable])
 		if err != nil {
-			conv.Unexpected(fmt.Sprintf("Couldn't get data for table %s : err = %s", t.Name, err))
+			conv.Unexpected(fmt.Sprintf("Couldn't get data for table %s : err = %s", srcTable, err))
 			continue
 		}
 		defer rows.Close()
@@ -105,7 +114,7 @@ func ProcessSQLData(conv *internal.Conv, db *sql.DB, infoSchema InfoSchema) {
 		}
 		spCols, err := internal.GetSpannerCols(conv, srcTable, srcCols)
 		if err != nil {
-			conv.Unexpected(fmt.Sprintf("Couldn't get spanner columns for table %s : err = %s", t.Name, err))
+			conv.Unexpected(fmt.Sprintf("Couldn't get spanner columns for table %s : err = %s", srcTable, err))
 			continue
 		}
 		spSchema, ok := conv.SpSchema[spTable]

@@ -270,7 +270,7 @@ func runSchemaAndDataSubcommand(t *testing.T, dbName, dbURI, filePrefix, dumpFil
 
 func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFile string) {
 	host, user, password := os.Getenv("MYSQLHOST"), os.Getenv("MYSQLUSER"), os.Getenv("MYSQLPWD")
-	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s' ", sessionFile, host, user, dbName, password, instanceID, dbName)
+	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s,dialect=spanner' ", sessionFile, host, user, dbName, password, instanceID, dbName)
 	err := common.RunCommand(args, projectID)
 	if err != nil {
 		t.Fatal(err)
@@ -350,7 +350,6 @@ func checkBigInt(ctx context.Context, t *testing.T, client *spanner.Client) {
 	for {
 		row, err := iter.Next()
 		if err == iterator.Done {
-			print("\niterator done\n")
 			break
 		}
 		if err != nil {
@@ -359,9 +358,6 @@ func checkBigInt(ctx context.Context, t *testing.T, client *spanner.Client) {
 		if err := row.Columns(&quantity); err != nil {
 			t.Fatal(err)
 		}
-		print("\ncolumn quantity")
-		print(quantity)
-		print("\n")
 	}
 	if got, want := quantity, int64(1); got != want {
 		t.Fatalf("quantities are not correct: got %v, want %v", got, want)

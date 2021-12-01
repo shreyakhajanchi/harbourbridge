@@ -15,12 +15,14 @@
 package mysql_test
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -273,6 +275,18 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 	host, user, password := os.Getenv("MYSQLHOST"), os.Getenv("MYSQLUSER"), os.Getenv("MYSQLPWD")
 	arg := fmt.Sprintf("mysqldump -host %s -user %s -password %s test_interleave_table_data > test_interleave_table_data.sql", host, user, password)
 	print("check sql for dump")
+	cmd := exec.Command("bash", "-c", arg)
+	var out, stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("GCLOUD_PROJECT=%s", projectID),
+	)
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("stdout: %q\n", out.String())
+		fmt.Printf("stderr: %q\n", stderr.String())
+		log.Fatal(err)
+	}
 	err1 := common.RunCommand(arg, projectID)
 	if err1 != nil {
 		t.Fatal(err1)

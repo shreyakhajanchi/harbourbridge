@@ -357,6 +357,9 @@ func checkBigInt(ctx context.Context, t *testing.T, client *spanner.Client) {
 			t.Fatal(err)
 		}
 		if err := row.Columns(&quantity); err != nil {
+			print("\ncolumn quantity")
+			print(quantity)
+			print("\n")
 			t.Fatal(err)
 		}
 	}

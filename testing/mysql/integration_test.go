@@ -277,6 +277,18 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 	if err1 != nil {
 		t.Fatal(err1)
 	}
+	file, err2 := os.Open("test_interleave_table_data.sql")
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	defer func() {
+		if err2 = file.Close(); err2 != nil {
+			log.Fatal(err2)
+		}
+	}()
+
+	b, _ := ioutil.ReadAll(file)
+	fmt.Print(b)
 	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s,dialect=spanner' ", sessionFile, host, user, dbName, password, instanceID, dbName)
 	err := common.RunCommand(args, projectID)
 	if err != nil {

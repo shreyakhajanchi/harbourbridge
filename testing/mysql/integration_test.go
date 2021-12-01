@@ -183,6 +183,7 @@ func TestIntegration_MySQLInterleaveTable_DataOnlyWithSessionFile(t *testing.T) 
 	sessionFile := "../../test_data/session_test.json"
 
 	dbURI := fmt.Sprintf("projects/%s/instances/%s/databases/%s", projectID, instanceID, dbName)
+
 	runDataOnlySubcommandForSessionFile(t, dbName, dbURI, sessionFile)
 	defer dropDatabase(t, dbURI)
 	checkResults(t, dbURI)
@@ -270,6 +271,12 @@ func runSchemaAndDataSubcommand(t *testing.T, dbName, dbURI, filePrefix, dumpFil
 
 func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFile string) {
 	host, user, password := os.Getenv("MYSQLHOST"), os.Getenv("MYSQLUSER"), os.Getenv("MYSQLPWD")
+	arg := fmt.Sprintf("mysqldump -host %s -user %s -password %s test_interleave_table_data > test_interleave_table_data.sql", host, user, password)
+	print("check sql for dump")
+	err1 := common.RunCommand(arg, projectID)
+	if err1 != nil {
+		t.Fatal(err1)
+	}
 	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s,dialect=spanner' ", sessionFile, host, user, dbName, password, instanceID, dbName)
 	err := common.RunCommand(args, projectID)
 	if err != nil {

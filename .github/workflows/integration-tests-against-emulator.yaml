@@ -81,7 +81,7 @@ jobs:
       - run: mysql --version
       - run: mysql -v -P 3306 --protocol=tcp -u root -proot test < test_data/mysqldump.test.out
       - run: mysql -v -P 3306 --protocol=tcp -u root -proot < test_data/mysql_interleave_dump.test.out
-      - run: mysqldump -v -P 3306 --protocol=tcp -u root -proot test_interleave_table_data > test_interleave_table_data.sql
+      - run: mysqldump -v -P 3306 --protocol=tcp --column-statistics=0 -u root -proot test_interleave_table_data > test_interleave_table_data.sql
 
       # create a spanner instance
       - uses: google-github-actions/setup-gcloud@master

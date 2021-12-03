@@ -304,7 +304,9 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 	b, _ := ioutil.ReadAll(file)
 	fmt.Print(string(b))
 	fmt.Print("\nabcd\n")
-	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s' ", sessionFile, host, user, dbName, password, instanceID, dbName)
+	tmpdir := prepareIntegrationTest(t)
+	filePrefix := filepath.Join(tmpdir, dbName+".")
+	args := fmt.Sprintf("data -source=mysql -prefix=%s -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s' ", filePrefix, sessionFile, host, user, dbName, password, instanceID, dbName)
 	err := common.RunCommand(args, projectID)
 	if err != nil {
 		t.Fatal(err)

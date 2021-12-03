@@ -273,7 +273,7 @@ func runSchemaAndDataSubcommand(t *testing.T, dbName, dbURI, filePrefix, dumpFil
 
 func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFile string) {
 	host, user, password := os.Getenv("MYSQLHOST"), os.Getenv("MYSQLUSER"), os.Getenv("MYSQLPWD")
-	arg := fmt.Sprintf("mysqldump -v -P 3306 --protocol=tcp --column-statistics=0 -u %s -p %s test_interleave_table_data > test_interleave_table_data.sql", user, password)
+	arg := fmt.Sprintf("mysqldump -v -P 3306 --protocol=tcp --column-statistics=0 -u %s -proot test_interleave_table_data > test_interleave_table_data.sql", user)
 	print("check sql for dump")
 	cmd := exec.Command("bash", "-c", arg)
 	var out, stderr bytes.Buffer

@@ -301,7 +301,7 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 	}()
 
 	b, _ := ioutil.ReadAll(file)
-	fmt.Print(b)
+	fmt.Print(string(b))
 	fmt.Print("\nabcd\n")
 	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s,dialect=spanner' ", sessionFile, host, user, dbName, password, instanceID, dbName)
 	err := common.RunCommand(args, projectID)

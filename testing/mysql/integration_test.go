@@ -282,12 +282,14 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("GCLOUD_PROJECT=%s", projectID),
 	)
+	fmt.Print("\nabcd\n")
 	if err := cmd.Run(); err != nil {
 		print("\nerror\n")
 		fmt.Printf("stdout: %q\n", out.String())
 		fmt.Printf("stderr: %q\n", stderr.String())
 		log.Fatal(err)
 	}
+	fmt.Print("\nabcd\n")
 	err1 := common.RunCommand(arg, projectID)
 	if err1 != nil {
 		t.Fatal(err1)

@@ -64,6 +64,7 @@ func (cmd *DataCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface
 		}
 	}()
 
+	fmt.Print("\nexecuting data\n")
 	sourceProfile, err := NewSourceProfile(cmd.sourceProfile, cmd.source)
 	if err != nil {
 		return subcommands.ExitUsageError
@@ -128,7 +129,7 @@ func (cmd *DataCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface
 		err = fmt.Errorf("can't create/update database: %v", err)
 		return subcommands.ExitFailure
 	}
-
+	fmt.Print("\ndatabase created\n")
 	bw, err := conversion.DataConv(driverName, getSQLConnectionStr(sourceProfile), &ioHelper, client, conv, true, getSchemaSampleSize(sourceProfile))
 	if err != nil {
 		err = fmt.Errorf("can't finish data conversion for db %s: %v", dbURI, err)

@@ -290,10 +290,6 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 		log.Fatal(err)
 	}
 	fmt.Print("\nabcd\n")
-	err1 := common.RunCommand(arg, projectID)
-	if err1 != nil {
-		t.Fatal(err1)
-	}
 	file, err2 := os.Open("test_interleave_table_data.sql")
 	if err2 != nil {
 		log.Fatal(err2)

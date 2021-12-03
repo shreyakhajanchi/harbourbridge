@@ -188,6 +188,7 @@ func TestIntegration_MySQLInterleaveTable_DataOnlyWithSessionFile(t *testing.T) 
 
 	runDataOnlySubcommandForSessionFile(t, dbName, dbURI, sessionFile)
 	defer dropDatabase(t, dbURI)
+	checkResultsUser(t, dbURI)
 	checkResults(t, dbURI)
 }
 
@@ -303,7 +304,7 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 	b, _ := ioutil.ReadAll(file)
 	fmt.Print(string(b))
 	fmt.Print("\nabcd\n")
-	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s,dialect=spanner' ", sessionFile, host, user, dbName, password, instanceID, dbName)
+	args := fmt.Sprintf("data -source=mysql -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s' ", sessionFile, host, user, dbName, password, instanceID, dbName)
 	err := common.RunCommand(args, projectID)
 	if err != nil {
 		t.Fatal(err)
@@ -376,6 +377,17 @@ func checkResults(t *testing.T, dbURI string) {
 	checkBigInt(ctx, t, client)
 }
 
+func checkResultsUser(t *testing.T, dbURI string) {
+	// Make a query to check results.
+	client, err := spanner.NewClient(ctx, dbURI)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	checkUser(ctx, t, client)
+}
+
 func checkBigInt(ctx context.Context, t *testing.T, client *spanner.Client) {
 	var quantity int64
 	iter := client.Single().Read(ctx, "cart", spanner.Key{"901e-a6cfc2b502dc", "abc-123"}, []string{"quantity"})
@@ -394,6 +406,27 @@ func checkBigInt(ctx context.Context, t *testing.T, client *spanner.Client) {
 	}
 	if got, want := quantity, int64(1); got != want {
 		t.Fatalf("quantities are not correct: got %v, want %v", got, want)
+	}
+}
+
+func checkUser(ctx context.Context, t *testing.T, client *spanner.Client) {
+	var userName string
+	iter := client.Single().Read(ctx, "user", spanner.Key{"901e-a6cfc2b502dc"}, []string{"user_name"})
+	defer iter.Stop()
+	for {
+		row, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := row.Columns(&userName); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, want := userName, "abc-123"; got != want {
+		t.Fatalf("user names are not correct: got %v, want %v", got, want)
 	}
 }
 

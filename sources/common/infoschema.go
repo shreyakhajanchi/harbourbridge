@@ -89,8 +89,6 @@ func ProcessData(conv *internal.Conv, infoSchema InfoSchema, writer *spanner.Bat
 			conv.Stats.BadRows[srcTable] += conv.Stats.Rows[srcTable]
 			conv.Unexpected(fmt.Sprintf("Can't get cols and schemas for table %s: err1=%s, err2=%s, ok=%t",
 				srcTable, err1, err2, ok))
-			fmt.Printf("Can't get cols and schemas for table %s: err1=%s, err2=%s, ok=%t",
-				srcTable, err1, err2, ok)
 			continue
 		}
 		err := infoSchema.ProcessData(conv, srcTable, srcSchema, spTable, spCols, spSchema)

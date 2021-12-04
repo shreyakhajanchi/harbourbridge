@@ -175,6 +175,7 @@ func (conv *Conv) SetDataMode() {
 // WriteRow calls dataSink and updates row stats.
 func (conv *Conv) WriteRow(srcTable, spTable string, spCols []string, spVals []interface{}) {
 	if conv.dataSink == nil {
+		print("\nNot nil error in convert\n")
 		msg := "Internal error: ProcessDataRow called but dataSink not configured"
 		VerbosePrintf("%s\n", msg)
 		conv.Unexpected(msg)

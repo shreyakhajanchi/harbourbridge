@@ -37,6 +37,7 @@ import (
 func ProcessDataRow(conv *internal.Conv, srcTable string, srcCols []string, srcSchema schema.Table, spTable string, spCols []string, spSchema ddl.CreateTable, vals []string) {
 	spTable, cvtCols, cvtVals, err := ConvertData(conv, srcTable, srcCols, srcSchema, spTable, spCols, spSchema, vals)
 	if err != nil {
+		print("\nNot nil error in data.go\n")
 		conv.Unexpected(fmt.Sprintf("Error while converting data: %s\n", err))
 		conv.StatsAddBadRow(srcTable, conv.DataMode())
 		conv.CollectBadRow(srcTable, srcCols, vals)

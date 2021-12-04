@@ -436,7 +436,7 @@ func checkUser(ctx context.Context, t *testing.T, client *spanner.Client) {
 			t.Fatal(err)
 		}
 	}
-	if got, want := userName, "xyz-123"; got != want {
+	if got, want := userName, "xyz-1"; got != want {
 		t.Fatalf("user names are not correct: got %v, want %v", got, want)
 	}
 }

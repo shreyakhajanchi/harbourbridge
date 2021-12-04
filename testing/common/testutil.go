@@ -25,6 +25,7 @@ func RunCommand(args string, projectID string) error {
 		fmt.Printf("stderr: %q\n", stderr.String())
 		return err
 	}
+	fmt.Printf("stdout: %q\n", out.String())
 	return nil
 }
 

@@ -186,7 +186,7 @@ func TestIntegration_MySQLInterleaveTable_DataOnlyWithSessionFile(t *testing.T) 
 
 	dbURI := fmt.Sprintf("projects/%s/instances/%s/databases/%s", projectID, instanceID, dbName)
 
-	runDataOnlySubcommandForSessionFile(t, dbName, dbURI, sessionFile)
+	runDataOnlySubcommandForSessionFile(t, dbName, sessionFile)
 	defer dropDatabase(t, dbURI)
 	checkResultsUser(t, dbURI)
 	checkResults(t, dbURI)
@@ -272,7 +272,7 @@ func runSchemaAndDataSubcommand(t *testing.T, dbName, dbURI, filePrefix, dumpFil
 	}
 }
 
-func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFile string) {
+func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, sessionFile string) {
 	host, user, password := os.Getenv("MYSQLHOST"), os.Getenv("MYSQLUSER"), os.Getenv("MYSQLPWD")
 	arg := fmt.Sprintf("mysqldump -v -P 3306 --protocol=tcp --column-statistics=0 -u %s -proot test_interleave_table_data > test_interleave_table_data.sql", user)
 	print("check sql for dump")
@@ -306,7 +306,7 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, dbURI, sessionFil
 	fmt.Print("\nabcd\n")
 	tmpdir := prepareIntegrationTest(t)
 	filePrefix := filepath.Join(tmpdir, dbName+".")
-	args := fmt.Sprintf("data -source=mysql -prefix=%s -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s' ", filePrefix, sessionFile, host, user, dbName, password, instanceID, dbName)
+	args := fmt.Sprintf("data -source=mysql -prefix=%s -session %s -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='project=%s,instance=%s,dbname=%s' ", filePrefix, sessionFile, host, user, dbName, password, projectID, instanceID, dbName)
 	err := common.RunCommand(args, projectID)
 	if err != nil {
 		t.Fatal(err)

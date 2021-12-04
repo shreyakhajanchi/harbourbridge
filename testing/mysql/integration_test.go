@@ -416,8 +416,10 @@ func checkUser(ctx context.Context, t *testing.T, client *spanner.Client) {
 	var userName, xyz string
 	rows, err := client.Single().ReadRow(ctx, "user", spanner.Key{"901e-a6cfc2b502dc"}, []string{"user_name"})
 	if err != nil {
+		print("\nerror\n")
 		print(err)
 	} else {
+		print("\nColumn\n")
 		rows.Columns(&xyz)
 		print(xyz)
 	}

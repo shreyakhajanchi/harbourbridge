@@ -316,6 +316,7 @@ func (conv *Conv) buildPrimaryKey(spTable string) string {
 // because we process dump data twice.
 func (conv *Conv) Unexpected(u string) {
 	VerbosePrintf("Unexpected condition: %s\n", u)
+	fmt.Printf("Unexpected condition: %s\n", u)
 	// Limit size of unexpected map. If over limit, then only
 	// update existing entries.
 	if _, ok := conv.Stats.Unexpected[u]; ok || len(conv.Stats.Unexpected) < 1000 {

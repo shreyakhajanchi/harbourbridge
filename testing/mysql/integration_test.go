@@ -381,6 +381,7 @@ func checkResults(t *testing.T, dbURI string) {
 
 func checkResultsUser(t *testing.T, dbURI string) {
 	// Make a query to check results.
+	print("\ndburi: " + dbURI + "\n")
 	client, err := spanner.NewClient(ctx, dbURI)
 	if err != nil {
 		log.Fatal(err)

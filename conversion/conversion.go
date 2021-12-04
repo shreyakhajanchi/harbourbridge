@@ -432,7 +432,6 @@ func Report(driver string, badWrites map[string]int64, BytesRead int64, banner s
 	if f != out {
 		fmt.Fprint(out, summary)
 		fmt.Fprintf(out, "See file '%s' for details of the schema and data conversions.\n", reportFileName)
-		fmt.Printf("File contents %s ", banner)
 	}
 }
 

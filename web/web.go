@@ -34,6 +34,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 	"github.com/cloudspannerecosystem/harbourbridge/conversion"
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
 	"github.com/cloudspannerecosystem/harbourbridge/sources/common"
@@ -42,7 +43,6 @@ import (
 	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/handlers"
-	_ "github.com/lib/pq"
 )
 
 // TODO:(searce):
@@ -88,9 +88,9 @@ func databaseConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	var dataSourceName string
 	switch config.Driver {
-	case "postgres":
+	case constants.POSTGRES:
 		dataSourceName = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", config.Host, config.Port, config.User, config.Password, config.Database)
-	case "mysql":
+	case constants.MYSQL:
 		dataSourceName = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", config.User, config.Password, config.Host, config.Port, config.Database)
 	default:
 		http.Error(w, fmt.Sprintf("Driver : '%s' is not supported", config.Driver), http.StatusBadRequest)
@@ -124,10 +124,10 @@ func convertSchemaSQL(w http.ResponseWriter, r *http.Request) {
 	conv := internal.MakeConv()
 	var err error
 	switch sessionState.driver {
-	case "mysql":
-		err = common.ProcessInfoSchema(conv, sessionState.sourceDB, mysql.InfoSchemaImpl{sessionState.dbName})
-	case "postgres":
-		err = common.ProcessInfoSchema(conv, sessionState.sourceDB, postgres.InfoSchemaImpl{})
+	case constants.MYSQL:
+		err = common.ProcessSchema(conv, mysql.InfoSchemaImpl{DbName: sessionState.dbName, Db: sessionState.sourceDB})
+	case constants.POSTGRES:
+		err = common.ProcessSchema(conv, postgres.InfoSchemaImpl{Db: sessionState.sourceDB})
 	default:
 		http.Error(w, fmt.Sprintf("Driver : '%s' is not supported", sessionState.driver), http.StatusBadRequest)
 		return
@@ -167,7 +167,7 @@ func convertSchemaDump(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("failed to open dump file %v : %v", dc.FilePath, err), http.StatusNotFound)
 		return
 	}
-	conv, err := conversion.SchemaConv(dc.Driver, conversion.TARGET_SPANNER, &conversion.IOStreams{In: f, Out: os.Stdout}, 0)
+	conv, err := conversion.SchemaConv(dc.Driver, "", constants.TargetSpanner, &conversion.IOStreams{In: f, Out: os.Stdout}, 0)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Schema Conversion Error : %v", err), http.StatusNotFound)
 		return
@@ -239,9 +239,9 @@ func getTypeMap(w http.ResponseWriter, r *http.Request) {
 	}
 	var typeMap map[string][]typeIssue
 	switch sessionState.driver {
-	case "mysql", "mysqldump":
+	case constants.MYSQL, constants.MYSQLDUMP:
 		typeMap = mysqlTypeMap
-	case "postgres", "pg_dump":
+	case constants.POSTGRES, constants.PGDUMP:
 		typeMap = postgresTypeMap
 	default:
 		http.Error(w, fmt.Sprintf("Driver : '%s' is not supported", sessionState.driver), http.StatusBadRequest)
@@ -341,7 +341,7 @@ func updateTableSchema(w http.ResponseWriter, r *http.Request) {
 	srcTableName := sessionState.conv.ToSource[table].Name
 	for colName, v := range t.UpdateCols {
 		if v.Removed {
-			err, status := canRemoveColumn(colName, table)
+			status, err := canRemoveColumn(colName, table)
 			if err != nil {
 				err = rollback(err)
 				http.Error(w, fmt.Sprintf("%v", err), status)
@@ -351,7 +351,7 @@ func updateTableSchema(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if v.Rename != "" && v.Rename != colName {
-			if err, status := canRenameOrChangeType(colName, table); err != nil {
+			if status, err := canRenameOrChangeType(colName, table); err != nil {
 				err = rollback(err)
 				http.Error(w, fmt.Sprintf("%v", err), status)
 				return
@@ -372,7 +372,7 @@ func updateTableSchema(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if typeChange {
-				if err, status := canRenameOrChangeType(colName, table); err != nil {
+				if status, err := canRenameOrChangeType(colName, table); err != nil {
 					err = rollback(err)
 					http.Error(w, fmt.Sprintf("%v", err), status)
 					return
@@ -438,6 +438,7 @@ func getReportFile(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(reportAbsPath))
 }
 
+// TableInterleaveStatus stores data regarding interleave status.
 type TableInterleaveStatus struct {
 	Possible bool
 	Parent   string
@@ -855,44 +856,43 @@ func isReferencedByFK(col, table string) (bool, string) {
 	return false, ""
 }
 
-func canRemoveColumn(colName, table string) (error, int) {
+func canRemoveColumn(colName, table string) (int, error) {
 	if isPartOfPK := isPartOfPK(colName, table); isPartOfPK {
-		return fmt.Errorf("column is part of primary key"), http.StatusBadRequest
+		return http.StatusBadRequest, fmt.Errorf("column is part of primary key")
 	}
 	if isPartOfSecondaryIndex, _ := isPartOfSecondaryIndex(colName, table); isPartOfSecondaryIndex {
-		return fmt.Errorf("column is part of secondary index, remove secondary index before making the update"), http.StatusPreconditionFailed
+		return http.StatusPreconditionFailed, fmt.Errorf("column is part of secondary index, remove secondary index before making the update")
 	}
 	isPartOfFK := isPartOfFK(colName, table)
 	isReferencedByFK, _ := isReferencedByFK(colName, table)
 	if isPartOfFK || isReferencedByFK {
-		return fmt.Errorf("column is part of foreign key relation, remove foreign key constraint before making the update"), http.StatusPreconditionFailed
+		return http.StatusPreconditionFailed, fmt.Errorf("column is part of foreign key relation, remove foreign key constraint before making the update")
 	}
-	return nil, http.StatusOK
+	return http.StatusOK, nil
 }
 
-func canRenameOrChangeType(colName, table string) (error, int) {
+func canRenameOrChangeType(colName, table string) (int, error) {
 	isPartOfPK := isPartOfPK(colName, table)
 	isParent, childSchema := isParent(table)
 	isChild := sessionState.conv.SpSchema[table].Parent != ""
 	if isPartOfPK && (isParent || isChild) {
-		return fmt.Errorf("Column : '%s' in table : '%s' is part of parent-child relation with schema : '%s'", colName, table, childSchema), http.StatusBadRequest
+		return http.StatusBadRequest, fmt.Errorf("column : '%s' in table : '%s' is part of parent-child relation with schema : '%s'", colName, table, childSchema)
 	}
 	if isPartOfSecondaryIndex, indexName := isPartOfSecondaryIndex(colName, table); isPartOfSecondaryIndex {
-		return fmt.Errorf("Column : '%s' in table : '%s' is part of secondary index : '%s', remove secondary index before making the update",
-			colName, table, indexName), http.StatusPreconditionFailed
+		return http.StatusPreconditionFailed, fmt.Errorf("column : '%s' in table : '%s' is part of secondary index : '%s', remove secondary index before making the update",
+			colName, table, indexName)
 	}
 	isPartOfFK := isPartOfFK(colName, table)
 	isReferencedByFK, relationTable := isReferencedByFK(colName, table)
 	if isPartOfFK || isReferencedByFK {
 		if isReferencedByFK {
-			return fmt.Errorf("Column : '%s' in table : '%s' is part of foreign key relation with table : '%s', remove foreign key constraint before making the update",
-				colName, table, relationTable), http.StatusPreconditionFailed
-		} else {
-			return fmt.Errorf("Column : '%s' in table : '%s' is part of foreign keys, remove foreign key constraint before making the update",
-				colName, table), http.StatusPreconditionFailed
+			return http.StatusPreconditionFailed, fmt.Errorf("column : '%s' in table : '%s' is part of foreign key relation with table : '%s', remove foreign key constraint before making the update",
+				colName, table, relationTable)
 		}
+		return http.StatusPreconditionFailed, fmt.Errorf("column : '%s' in table : '%s' is part of foreign keys, remove foreign key constraint before making the update",
+			colName, table)
 	}
-	return nil, http.StatusOK
+	return http.StatusOK, nil
 }
 
 func checkPrimaryKeyPrefix(table string, refTable string, fk ddl.Foreignkey, tableInterleaveStatus *TableInterleaveStatus) bool {
@@ -1026,9 +1026,9 @@ func getType(newType, table, colName string, srcTableName string) (ddl.CreateTab
 	var ty ddl.Type
 	var issues []internal.SchemaIssue
 	switch sessionState.driver {
-	case "mysql", "mysqldump":
+	case constants.MYSQL, constants.MYSQLDUMP:
 		ty, issues = toSpannerTypeMySQL(srcCol.Type.Name, newType, srcCol.Type.Mods)
-	case "pg_dump", "postgres":
+	case constants.PGDUMP, constants.POSTGRES:
 		ty, issues = toSpannerTypePostgres(srcCol.Type.Name, newType, srcCol.Type.Mods)
 	default:
 		return sp, ty, fmt.Errorf("driver : '%s' is not supported", sessionState.driver)
@@ -1101,6 +1101,7 @@ func getFilePrefix(now time.Time) (string, error) {
 	return dbName + ".", nil
 }
 
+// SessionState stores information for the current migration session.
 type SessionState struct {
 	sourceDB    *sql.DB        // Connection to source database in case of direct connection
 	dbName      string         // Name of source database
@@ -1159,7 +1160,8 @@ func init() {
 	sessionState.conv = internal.MakeConv()
 }
 
-func WebApp() {
+// App connects to the web app.
+func App() {
 	addr := ":8080"
 	router := getRoutes()
 	log.Printf("Starting server at port 8080\n")

@@ -26,8 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudspannerecosystem/harbourbridge/cmd"
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 	"github.com/cloudspannerecosystem/harbourbridge/conversion"
+	"github.com/cloudspannerecosystem/harbourbridge/testing/common"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 
@@ -205,7 +206,7 @@ func populateDynamoDB(t *testing.T) {
 	log.Println("Successfully created table and put item for dynamodb")
 }
 
-func TestIntegration_DYNAMODB_SimpleUse(t *testing.T) {
+func TestIntegration_DYNAMODB_Command(t *testing.T) {
 	onlyRunForEmulatorTest(t)
 	t.Parallel()
 
@@ -213,11 +214,12 @@ func TestIntegration_DYNAMODB_SimpleUse(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	now := time.Now()
-	dbName, _ := conversion.GetDatabaseName(conversion.DYNAMODB, now)
+	dbName, _ := conversion.GetDatabaseName(constants.DYNAMODB, now)
 	dbURI := fmt.Sprintf("projects/%s/instances/%s/databases/%s", projectID, instanceID, dbName)
 	filePrefix := filepath.Join(tmpdir, dbName+".")
 
-	err := cmd.CommandLine(ctx, conversion.DYNAMODB, "spanner", dbURI, false, false, false, 0, "", &conversion.IOStreams{Out: os.Stdout}, filePrefix, now)
+	args := fmt.Sprintf("-driver %s -prefix %s -instance %s -dbname %s", constants.DYNAMODB, filePrefix, instanceID, dbName)
+	err := common.RunCommand(args, projectID)
 	if err != nil {
 		t.Fatal(err)
 	}

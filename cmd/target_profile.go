@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"strings"
+
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 )
 
 type TargetProfileType int
@@ -37,7 +39,7 @@ type TargetProfile struct {
 	conn TargetProfileConnection
 }
 
-// ToLegacyTargetDb converts source profile to equivalent legacy global flag
+// ToLegacyTargetDb converts source-profile to equivalent legacy global flag
 // -target-db etc since the rest of the codebase still uses the same.
 // TODO: Deprecate this function and pass around TargetProfile across the
 // codebase wherever information about target connection is required.
@@ -50,17 +52,17 @@ func (trg TargetProfile) ToLegacyTargetDb() string {
 			case TargetProfileConnectionTypeSpanner:
 				{
 					sp := conn.sp
-					if len(sp.dialect) > 0 && strings.ToLower(sp.dialect) == "postgresql" {
-						return "experimental_postgres"
+					if len(sp.dialect) > 0 && strings.ToLower(sp.dialect) == constants.DIALECT_POSTGRESQL {
+						return constants.TargetExperimentalPostgres
 					}
-					return "spanner"
+					return constants.TargetSpanner
 				}
 			default:
-				return "spanner"
+				return constants.TargetSpanner
 			}
 		}
 	default:
-		return "spanner"
+		return constants.TargetSpanner
 	}
 }
 

@@ -17,6 +17,7 @@ package postgres
 import (
 	"testing"
 
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
 	"github.com/cloudspannerecosystem/harbourbridge/schema"
 	"github.com/cloudspannerecosystem/harbourbridge/sources/common"
@@ -102,7 +103,7 @@ func TestToSpannerType(t *testing.T) {
 func TestToExperimentalSpannerType(t *testing.T) {
 	conv := internal.MakeConv()
 	conv.SetSchemaMode()
-	conv.TargetDb = "experimental_postgres"
+	conv.TargetDb = constants.TargetExperimentalPostgres
 	name := "test"
 	srcSchema := schema.Table{
 		Name:     name,
@@ -154,9 +155,9 @@ func TestToExperimentalSpannerType(t *testing.T) {
 			"b": ddl.ColumnDef{Name: "b", T: ddl.Type{Name: ddl.Float64}},
 			"c": ddl.ColumnDef{Name: "c", T: ddl.Type{Name: ddl.Bool}},
 			"d": ddl.ColumnDef{Name: "d", T: ddl.Type{Name: ddl.String, Len: int64(6)}},
-			"e": ddl.ColumnDef{Name: "e", T: ddl.Type{Name: ddl.String, Len: ddl.MaxLength}},
+			"e": ddl.ColumnDef{Name: "e", T: ddl.Type{Name: ddl.Numeric}},
 			"f": ddl.ColumnDef{Name: "f", T: ddl.Type{Name: ddl.String, Len: ddl.MaxLength}},
-			"g": ddl.ColumnDef{Name: "g", T: ddl.Type{Name: ddl.Json}},
+			"g": ddl.ColumnDef{Name: "g", T: ddl.Type{Name: ddl.String, Len: ddl.MaxLength}},
 		},
 		Pks: []ddl.IndexKey{ddl.IndexKey{Col: "a"}},
 		Fks: []ddl.Foreignkey{ddl.Foreignkey{Name: "fk_test", Columns: []string{"d"}, ReferTable: "ref_table", ReferColumns: []string{"dref"}},

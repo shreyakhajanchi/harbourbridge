@@ -32,15 +32,17 @@ import (
 	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
 )
 
-// Postgres specific implementation for InfoSchema
+// InfoSchemaImpl postgres specific implementation for InfoSchema.
 type InfoSchemaImpl struct {
+	Db *sql.DB
 }
 
-//Functions below implement the common.InfoSchema interface
+// GetToDdl function below implement the common.InfoSchema interface.
 func (isi InfoSchemaImpl) GetToDdl() common.ToDdl {
 	return ToDdlImpl{}
 }
 
+// GetTableName returns table name.
 func (isi InfoSchemaImpl) GetTableName(schema string, tableName string) string {
 	if schema == "public" { // Drop 'public' prefix.
 		return tableName
@@ -48,19 +50,20 @@ func (isi InfoSchemaImpl) GetTableName(schema string, tableName string) string {
 	return fmt.Sprintf("%s.%s", schema, tableName)
 }
 
-func (isi InfoSchemaImpl) GetRowsFromTable(conv *internal.Conv, db *sql.DB, table common.SchemaAndName) (*sql.Rows, error) {
+// GetRowsFromTable returns a sql Rows object for a table.
+func (isi InfoSchemaImpl) GetRowsFromTable(conv *internal.Conv, srcTable string) (interface{}, error) {
 	// PostgreSQL schema and name can be arbitrary strings.
 	// Ideally we would pass schema/name as a query parameter,
 	// but PostgreSQL doesn't support this. So we quote it instead.
-	q := fmt.Sprintf(`SELECT * FROM "%s"."%s";`, table.Schema, table.Name)
-	rows, err := db.Query(q)
+	q := fmt.Sprintf(`SELECT * FROM "%s"."%s";`, conv.SrcSchema[srcTable].Schema, srcTable)
+	rows, err := isi.Db.Query(q)
 	if err != nil {
 		return nil, err
 	}
 	return rows, err
 }
 
-// ProcessSQLData performs data conversion for source database
+// ProcessDataRows performs data conversion for source database
 // 'db'. For each table, we extract data using a "SELECT *" query,
 // convert the data to Spanner data (based on the source and Spanner
 // schemas), and write it to Spanner.  If we can't get/process data
@@ -79,7 +82,15 @@ func (isi InfoSchemaImpl) GetRowsFromTable(conv *internal.Conv, db *sql.DB, tabl
 // We choose to do all type conversions explicitly ourselves so that
 // we can generate more targeted error messages: hence we pass
 // *interface{} parameters to row.Scan.
-func (isi InfoSchemaImpl) ProcessDataRows(conv *internal.Conv, srcTable string, srcCols []string, srcSchema schema.Table, spTable string, spCols []string, spSchema ddl.CreateTable, rows *sql.Rows) {
+func (isi InfoSchemaImpl) ProcessData(conv *internal.Conv, srcTable string, srcSchema schema.Table, spTable string, spCols []string, spSchema ddl.CreateTable) error {
+	rowsInterface, err := isi.GetRowsFromTable(conv, srcTable)
+	if err != nil {
+		conv.Unexpected(fmt.Sprintf("Couldn't get data for table %s : err = %s", srcTable, err))
+		return err
+	}
+	rows := rowsInterface.(*sql.Rows)
+	defer rows.Close()
+	srcCols, _ := rows.Columns()
 	v, iv := buildVals(len(srcCols))
 	for rows.Next() {
 		err := rows.Scan(iv...)
@@ -98,6 +109,7 @@ func (isi InfoSchemaImpl) ProcessDataRows(conv *internal.Conv, srcTable string, 
 		}
 		conv.WriteRow(srcTable, spTable, cvtCols, cvtVals)
 	}
+	return nil
 }
 
 // ConvertSQLRow performs data conversion for a single row of data
@@ -141,12 +153,12 @@ func convertSQLRow(conv *internal.Conv, srcTable string, srcCols []string, srcSc
 }
 
 // GetRowCount with number of rows in each table.
-func (isi InfoSchemaImpl) GetRowCount(db *sql.DB, table common.SchemaAndName) (int64, error) {
+func (isi InfoSchemaImpl) GetRowCount(table common.SchemaAndName) (int64, error) {
 	// PostgreSQL schema and name can be arbitrary strings.
 	// Ideally we would pass schema/name as a query parameter,
 	// but PostgreSQL doesn't support this. So we quote it instead.
 	q := fmt.Sprintf(`SELECT COUNT(*) FROM "%s"."%s";`, table.Schema, table.Name)
-	rows, err := db.Query(q)
+	rows, err := isi.Db.Query(q)
 	if err != nil {
 		return 0, err
 	}
@@ -159,18 +171,19 @@ func (isi InfoSchemaImpl) GetRowCount(db *sql.DB, table common.SchemaAndName) (i
 	return 0, nil //Check if 0 is ok to return
 }
 
+// GetTables return list of tables in the selected database.
 // TODO: All of the queries to get tables and table data should be in
 // a single transaction to ensure we obtain a consistent snapshot of
 // schema information and table data (pg_dump does something
 // similar).
-func (isi InfoSchemaImpl) GetTables(db *sql.DB) ([]common.SchemaAndName, error) {
+func (isi InfoSchemaImpl) GetTables() ([]common.SchemaAndName, error) {
 	ignored := make(map[string]bool)
 	// Ignore all system tables: we just want to convert user tables.
 	for _, s := range []string{"information_schema", "postgres", "pg_catalog", "pg_temp_1", "pg_toast", "pg_toast_temp_1"} {
 		ignored[s] = true
 	}
 	q := "SELECT table_schema, table_name FROM information_schema.tables where table_type = 'BASE TABLE'"
-	rows, err := db.Query(q)
+	rows, err := isi.Db.Query(q)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get tables: %w", err)
 	}
@@ -186,16 +199,17 @@ func (isi InfoSchemaImpl) GetTables(db *sql.DB) ([]common.SchemaAndName, error) 
 	return tables, nil
 }
 
-func (isi InfoSchemaImpl) GetColumns(table common.SchemaAndName, db *sql.DB) (*sql.Rows, error) {
+// GetColumns returns a list of Column objects and names
+func (isi InfoSchemaImpl) GetColumns(conv *internal.Conv, table common.SchemaAndName, constraints map[string][]string, primaryKeys []string) (map[string]schema.Column, []string, error) {
 	q := `SELECT c.column_name, c.data_type, e.data_type, c.is_nullable, c.column_default, c.character_maximum_length, c.numeric_precision, c.numeric_scale
               FROM information_schema.COLUMNS c LEFT JOIN information_schema.element_types e
                  ON ((c.table_catalog, c.table_schema, c.table_name, 'TABLE', c.dtd_identifier)
                      = (e.object_catalog, e.object_schema, e.object_name, e.object_type, e.collection_type_identifier))
               where table_schema = $1 and table_name = $2 ORDER BY c.ordinal_position;`
-	return db.Query(q, table.Schema, table.Name)
-}
-
-func (isi InfoSchemaImpl) ProcessColumns(conv *internal.Conv, cols *sql.Rows, constraints map[string][]string) (map[string]schema.Column, []string) {
+	cols, err := isi.Db.Query(q, table.Schema, table.Name)
+	if err != nil {
+		return nil, nil, fmt.Errorf("couldn't get schema for table %s.%s: %s", table.Schema, table.Name, err)
+	}
 	colDefs := make(map[string]schema.Column)
 	var colNames []string
 	var colName, dataType, isNullable string
@@ -229,20 +243,20 @@ func (isi InfoSchemaImpl) ProcessColumns(conv *internal.Conv, cols *sql.Rows, co
 		colDefs[colName] = c
 		colNames = append(colNames, colName)
 	}
-	return colDefs, colNames
+	return colDefs, colNames, nil
 }
 
-// getConstraints returns a list of primary keys and by-column map of
+// GetConstraints returns a list of primary keys and by-column map of
 // other constraints.  Note: we need to preserve ordinal order of
 // columns in primary key constraints.
 // Note that foreign key constraints are handled in getForeignKeys.
-func (isi InfoSchemaImpl) GetConstraints(conv *internal.Conv, db *sql.DB, table common.SchemaAndName) ([]string, map[string][]string, error) {
+func (isi InfoSchemaImpl) GetConstraints(conv *internal.Conv, table common.SchemaAndName) ([]string, map[string][]string, error) {
 	q := `SELECT k.COLUMN_NAME, t.CONSTRAINT_TYPE
               FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS t
                 INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS k
                   ON t.CONSTRAINT_NAME = k.CONSTRAINT_NAME AND t.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
               WHERE k.TABLE_SCHEMA = $1 AND k.TABLE_NAME = $2 ORDER BY k.ordinal_position;`
-	rows, err := db.Query(q, table.Schema, table.Name)
+	rows, err := isi.Db.Query(q, table.Schema, table.Name)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -270,8 +284,8 @@ func (isi InfoSchemaImpl) GetConstraints(conv *internal.Conv, db *sql.DB, table 
 	return primaryKeys, m, nil
 }
 
-// getForeignKeys returns a list of all the foreign key constraints.
-func (isi InfoSchemaImpl) GetForeignKeys(conv *internal.Conv, db *sql.DB, table common.SchemaAndName) (foreignKeys []schema.ForeignKey, err error) {
+// GetForeignKeys returns a list of all the foreign key constraints.
+func (isi InfoSchemaImpl) GetForeignKeys(conv *internal.Conv, table common.SchemaAndName) (foreignKeys []schema.ForeignKey, err error) {
 	q := `SELECT 
 		schema_name AS "TABLE_SCHEMA", 
 		cl.relname AS "TABLE_NAME", 
@@ -296,7 +310,7 @@ func (isi InfoSchemaImpl) GetForeignKeys(conv *internal.Conv, db *sql.DB, table 
    		JOIN PG_ATTRIBUTE att2 ON
        		att2.attrelid = con.conrelid AND att2.attnum = con.parent;`
 
-	rows, err := db.Query(q, table.Schema, table.Name)
+	rows, err := isi.Db.Query(q, table.Schema, table.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -335,11 +349,11 @@ func (isi InfoSchemaImpl) GetForeignKeys(conv *internal.Conv, db *sql.DB, table 
 	return foreignKeys, nil
 }
 
-// getIndexes return a list of all indexes for the specified table.
+// GetIndexes return a list of all indexes for the specified table.
 // Note: Extracting index definitions from PostgreSQL information schema tables is complex.
 // See https://stackoverflow.com/questions/6777456/list-all-index-names-column-names-and-its-table-name-of-a-postgresql-database/44460269#44460269
 // for background.
-func (isi InfoSchemaImpl) GetIndexes(conv *internal.Conv, db *sql.DB, table common.SchemaAndName) ([]schema.Index, error) {
+func (isi InfoSchemaImpl) GetIndexes(conv *internal.Conv, table common.SchemaAndName) ([]schema.Index, error) {
 	q := `SELECT
 			irel.relname AS index_name,
 			a.attname AS column_name,
@@ -369,7 +383,7 @@ func (isi InfoSchemaImpl) GetIndexes(conv *internal.Conv, db *sql.DB, table comm
            		array_position(i.indkey, a.attnum),
            		o.OPTION,i.indisunique
 		ORDER BY irel.relname, array_position(i.indkey, a.attnum);`
-	rows, err := db.Query(q, table.Schema, table.Name)
+	rows, err := isi.Db.Query(q, table.Schema, table.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -488,7 +502,7 @@ func cvtSQLScalar(conv *internal.Conv, srcCd schema.Column, spCd ddl.ColumnDef, 
 	case ddl.Numeric:
 		switch v := val.(type) {
 		case []byte: // Note: PostgreSQL uses []byte for numeric.
-			return convNumeric(string(v))
+			return convNumeric(conv, string(v))
 		}
 	case ddl.String:
 		switch v := val.(type) {
@@ -512,7 +526,7 @@ func cvtSQLScalar(conv *internal.Conv, srcCd schema.Column, spCd ddl.ColumnDef, 
 		case time.Time:
 			return v, nil
 		}
-	case ddl.Json:
+	case ddl.JSON:
 		switch v := val.(type) {
 		case string:
 			return string(v), nil

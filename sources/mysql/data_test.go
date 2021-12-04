@@ -88,7 +88,7 @@ func TestConvertData(t *testing.T) {
 		{"string", ddl.Type{Name: ddl.String, Len: ddl.MaxLength}, "", "eh", "eh"},
 		{"datetime", ddl.Type{Name: ddl.Timestamp}, "datetime", "2019-10-29 05:30:00", getTimeWithoutTimezone(t, "2019-10-29 05:30:00")},
 		{"timestamp", ddl.Type{Name: ddl.Timestamp}, "timestamp", "2019-10-29 05:30:00", getTime(t, "2019-10-29T05:30:00+05:30")},
-		{"json", ddl.Type{Name: ddl.Json}, "", "{\"key1\": \"value1\"}", "{\"key1\": \"value1\"}"},
+		{"json", ddl.Type{Name: ddl.JSON}, "", "{\"key1\": \"value1\"}", "{\"key1\": \"value1\"}"},
 		{"string array(set)", ddl.Type{Name: ddl.String, Len: ddl.MaxLength, IsArray: true}, "", "1,Travel,3,Dance", []spanner.NullString{
 			spanner.NullString{StringVal: "1", Valid: true},
 			spanner.NullString{StringVal: "Travel", Valid: true},
@@ -322,10 +322,6 @@ func buildConv(spTable ddl.CreateTable, srcTable schema.Table) *internal.Conv {
 	conv.SrcSchema[srcTable.Name] = srcTable
 	conv.ToSource[spTable.Name] = internal.NameAndCols{Name: srcTable.Name, Cols: make(map[string]string)}
 	conv.ToSpanner[srcTable.Name] = internal.NameAndCols{Name: spTable.Name, Cols: make(map[string]string)}
-	for i := range spTable.ColNames {
-		conv.ToSource[spTable.Name].Cols[spTable.ColNames[i]] = srcTable.ColNames[i]
-		conv.ToSpanner[srcTable.Name].Cols[srcTable.ColNames[i]] = spTable.ColNames[i]
-	}
 	return conv
 }
 

@@ -415,6 +415,7 @@ func Report(driver string, badWrites map[string]int64, BytesRead int64, banner s
 	w.WriteString(banner)
 
 	summary := internal.GenerateReport(driver, conv, w, badWrites, true, true)
+	fmt.Fprintf(out, summary)
 	w.Flush()
 	var isDump bool
 	if strings.Contains(driver, "dump") {

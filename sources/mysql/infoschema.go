@@ -96,7 +96,6 @@ func (isi InfoSchemaImpl) ProcessData(conv *internal.Conv, srcTable string, srcS
 		// get RawBytes from data.
 		err := rows.Scan(scanArgs...)
 		if err != nil {
-			print("\nNot nil error in infoschema\n")
 			conv.Unexpected(fmt.Sprintf("Couldn't process sql data row: %s", err))
 			// Scan failed, so we don't have any data to add to bad rows.
 			conv.StatsAddBadRow(srcTable, conv.DataMode())

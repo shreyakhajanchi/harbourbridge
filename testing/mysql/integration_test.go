@@ -285,7 +285,6 @@ func runDataOnlySubcommandForSessionFile(t *testing.T, dbName, sessionFile strin
 	)
 	fmt.Print("\nabcd\n")
 	if err := cmd.Run(); err != nil {
-		print("\nerror\n")
 		fmt.Printf("stdout: %q\n", out.String())
 		fmt.Printf("stderr: %q\n", stderr.String())
 		log.Fatal(err)
@@ -417,7 +416,7 @@ func checkUser(ctx context.Context, t *testing.T, client *spanner.Client) {
 	rows, err := client.Single().ReadRow(ctx, "user", spanner.Key{"901e-a6cfc2b502dc"}, []string{"user_name"})
 	if err != nil {
 		print("\nerror\n")
-		print(err)
+		t.Fatal(err)
 	} else {
 		print("\nColumn\n")
 		rows.Columns(&xyz)

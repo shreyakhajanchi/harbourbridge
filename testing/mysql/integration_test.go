@@ -413,7 +413,14 @@ func checkBigInt(ctx context.Context, t *testing.T, client *spanner.Client) {
 }
 
 func checkUser(ctx context.Context, t *testing.T, client *spanner.Client) {
-	var userName string
+	var userName, xyz string
+	rows, err := client.Single().ReadRow(ctx, "user", spanner.Key{"901e-a6cfc2b502dc"}, []string{"user_name"})
+	if err != nil {
+		print(err)
+	} else {
+		rows.Columns(&xyz)
+		print(xyz)
+	}
 	iter := client.Single().Read(ctx, "user", spanner.Key{"901e-a6cfc2b502dc"}, []string{"user_name"})
 	defer iter.Stop()
 	for {
@@ -428,7 +435,7 @@ func checkUser(ctx context.Context, t *testing.T, client *spanner.Client) {
 			t.Fatal(err)
 		}
 	}
-	if got, want := userName, "abc-123"; got != want {
+	if got, want := userName, "xyz-123"; got != want {
 		t.Fatalf("user names are not correct: got %v, want %v", got, want)
 	}
 }

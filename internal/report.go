@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 	"github.com/cloudspannerecosystem/harbourbridge/schema"
 	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
 )
@@ -96,6 +97,7 @@ type tableReportBody struct {
 	Lines   []string
 }
 
+// AnalyzeTables generates table reports for all processed tables.
 func AnalyzeTables(conv *Conv, badWrites map[string]int64) (r []tableReport) {
 	// Process tables in alphabetical order. This ensures that tables
 	// appear in alphabetical order in report.txt.
@@ -118,7 +120,7 @@ func buildTableReport(conv *Conv, srcTable string, badWrites map[string]int64) t
 	if err != nil || !ok1 || !ok2 {
 		m := "bad source-DB-to-Spanner table mapping or Spanner schema"
 		conv.Unexpected("report: " + m)
-		tr.Body = []tableReportBody{tableReportBody{Heading: "Internal error: " + m}}
+		tr.Body = []tableReportBody{{Heading: "Internal error: " + m}}
 		return tr
 	}
 	issues, cols, warnings := analyzeCols(conv, srcTable, spTable)
@@ -126,9 +128,11 @@ func buildTableReport(conv *Conv, srcTable string, badWrites map[string]int64) t
 	tr.Warnings = warnings
 	if pk, ok := conv.SyntheticPKeys[spTable]; ok {
 		tr.SyntheticPKey = pk.Col
-		tr.Body = buildTableReportBody(conv, srcTable, issues, spSchema, srcSchema, &pk.Col)
+		tr.Body = buildTableReportBody(conv, srcTable, issues, spSchema, srcSchema, &pk.Col, nil)
+	} else if pk, ok := conv.UniquePKey[spTable]; ok {
+		tr.Body = buildTableReportBody(conv, srcTable, issues, spSchema, srcSchema, nil, pk)
 	} else {
-		tr.Body = buildTableReportBody(conv, srcTable, issues, spSchema, srcSchema, nil)
+		tr.Body = buildTableReportBody(conv, srcTable, issues, spSchema, srcSchema, nil, nil)
 	}
 	if !conv.SchemaMode() {
 		fillRowStats(conv, srcTable, badWrites, &tr)
@@ -136,7 +140,7 @@ func buildTableReport(conv *Conv, srcTable string, badWrites map[string]int64) t
 	return tr
 }
 
-func buildTableReportBody(conv *Conv, srcTable string, issues map[string][]SchemaIssue, spSchema ddl.CreateTable, srcSchema schema.Table, syntheticPK *string) []tableReportBody {
+func buildTableReportBody(conv *Conv, srcTable string, issues map[string][]SchemaIssue, spSchema ddl.CreateTable, srcSchema schema.Table, syntheticPK *string, uniquePK []string) []tableReportBody {
 	var body []tableReportBody
 	for _, p := range []struct {
 		heading  string
@@ -158,6 +162,13 @@ func buildTableReportBody(conv *Conv, srcTable string, issues map[string][]Schem
 			// Much of the generic code for processing issues assumes we have both.
 			if p.severity == warning {
 				l = append(l, fmt.Sprintf("Column '%s' was added because this table didn't have a primary key. Spanner requires a primary key for every table", *syntheticPK))
+			}
+		}
+		if uniquePK != nil {
+			// Warning about using a column with unique constraint as primary key
+			// in case primary key is absent.
+			if p.severity == warning {
+				l = append(l, fmt.Sprintf("UNIQUE constraint on column(s) '%s' replaced with primary key since this table didn't have one. Spanner requires a primary key for every table", strings.Join(uniquePK, ", ")))
 			}
 		}
 		issueBatcher := make(map[SchemaIssue]bool)
@@ -237,7 +248,7 @@ func fillRowStats(conv *Conv, srcTable string, badWrites map[string]int64, tr *t
 	tr.badRows = badConvRows + badRowWrites
 }
 
-// Provides a description and severity for each schema issue.
+// IssueDB provides a description and severity for each schema issue.
 // Note on batch: for some issues, we'd like to report just the first instance
 // in a table and suppress other instances i.e. adding more instances
 // of the issue in the same table has little value and could be very noisy.
@@ -369,6 +380,7 @@ func rateConversion(rows, badRows, cols, warnings int64, missingPKey, summary bo
 	return rate
 }
 
+// GenerateSummary creates a summarized version of a tableReport.
 func GenerateSummary(conv *Conv, r []tableReport, badWrites map[string]int64) string {
 	cols := int64(0)
 	warnings := int64(0)
@@ -397,6 +409,7 @@ func GenerateSummary(conv *Conv, r []tableReport, badWrites map[string]int64) st
 	return rateConversion(rows, badRows, cols, warnings, missingPKey, true, conv.SchemaMode())
 }
 
+// IgnoredStatements creates a list of statements to ignore.
 func IgnoredStatements(conv *Conv) (l []string) {
 	for s := range conv.Stats.Statement {
 		switch s {
@@ -444,11 +457,11 @@ func writeStmtStats(driverName string, conv *Conv, w *bufio.Writer) {
 		s := conv.Stats.Statement[x.statement]
 		fmt.Fprintf(w, "  %6d %6d %6d %6d  %s\n", s.Schema, s.Data, s.Skip, s.Error, x.statement)
 	}
-	if driverName == "pg_dump" {
+	if driverName == constants.PGDUMP {
 		w.WriteString("See github.com/pganalyze/pg_query_go for definitions of statement types\n")
 		w.WriteString("(pganalyze/pg_query_go is the library we use for parsing pg_dump output).\n")
 		w.WriteString("\n")
-	} else if driverName == "mysqldump" {
+	} else if driverName == constants.MYSQLDUMP {
 		w.WriteString("See https://github.com/pingcap/parser for definitions of statement types\n")
 		w.WriteString("(pingcap/parser is the library we use for parsing mysqldump output).\n")
 		w.WriteString("\n")
@@ -468,14 +481,14 @@ func writeUnexpectedConditions(driverName string, conv *Conv, w *bufio.Writer) {
 		return
 	}
 	switch driverName {
-	case "mysqldump":
+	case constants.MYSQLDUMP:
 		w.WriteString("For debugging only. This section provides details of unexpected conditions\n")
 		w.WriteString("encountered as we processed the mysqldump data. In particular, the AST node\n")
 		w.WriteString("representation used by the pingcap/parser library used for parsing\n")
 		w.WriteString("mysqldump output is highly permissive: almost any construct can appear at\n")
 		w.WriteString("any node in the AST tree. The list details all unexpected nodes and\n")
 		w.WriteString("conditions.\n")
-	case "pg_dump":
+	case constants.PGDUMP:
 		w.WriteString("For debugging only. This section provides details of unexpected conditions\n")
 		w.WriteString("encountered as we processed the pg_dump data. In particular, the AST node\n")
 		w.WriteString("representation used by the pganalyze/pg_query_go library used for parsing\n")

@@ -12,30 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package MySQL handles schema and data migrations from MySQL.
 package mysql
 
 import (
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
 	"github.com/cloudspannerecosystem/harbourbridge/schema"
 	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
 )
 
-// MySQL specific implementation for ToDdl
+// ToDdlImpl MySQL specific implementation for ToDdl.
 type ToDdlImpl struct {
 }
 
-// Functions below implement the common.ToDdl interface
-// toSpannerType maps a scalar source schema type (defined by id and
+// ToSpannerType maps a scalar source schema type (defined by id and
 // mods) into a Spanner type. This is the core source-to-Spanner type
 // mapping.  toSpannerType returns the Spanner type and a list of type
 // conversion issues encountered.
+// Functions below implement the common.ToDdl interface
 func (tdi ToDdlImpl) ToSpannerType(conv *internal.Conv, columnType schema.Type) (ddl.Type, []internal.SchemaIssue) {
 	ty, issues := toSpannerTypeInternal(conv, columnType.Name, columnType.Mods)
-	if len(columnType.ArrayBounds) > 1 {
-		ty = ddl.Type{Name: ddl.String, Len: ddl.MaxLength}
-		issues = append(issues, internal.MultiDimensionalArray)
+	if conv.TargetDb == constants.TargetExperimentalPostgres {
+		ty = overrideExperimentalType(columnType, ty)
+	} else {
+		if len(columnType.ArrayBounds) > 1 {
+			ty = ddl.Type{Name: ddl.String, Len: ddl.MaxLength}
+			issues = append(issues, internal.MultiDimensionalArray)
+		}
+		ty.IsArray = len(columnType.ArrayBounds) == 1
 	}
-	ty.IsArray = len(columnType.ArrayBounds) == 1
 	return ty, issues
 }
 
@@ -78,7 +84,7 @@ func toSpannerTypeInternal(conv *internal.Conv, id string, mods []int64) (ddl.Ty
 	case "set", "enum":
 		return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}, nil
 	case "json":
-		return ddl.Type{Name: ddl.Json}, nil
+		return ddl.Type{Name: ddl.JSON}, nil
 	case "binary", "varbinary":
 		return ddl.Type{Name: ddl.Bytes, Len: ddl.MaxLength}, nil
 	case "tinyblob", "mediumblob", "blob", "longblob":
@@ -93,4 +99,16 @@ func toSpannerTypeInternal(conv *internal.Conv, id string, mods []int64) (ddl.Ty
 		return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}, []internal.SchemaIssue{internal.Time}
 	}
 	return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}, []internal.SchemaIssue{internal.NoGoodType}
+}
+
+// Override the types to map to experimental postgres types.
+func overrideExperimentalType(columnType schema.Type, originalType ddl.Type) ddl.Type {
+	if len(columnType.ArrayBounds) > 0 {
+		return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}
+	} else if columnType.Name == "date" {
+		return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}
+	} else if columnType.Name == "json" {
+		return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}
+	}
+	return originalType
 }

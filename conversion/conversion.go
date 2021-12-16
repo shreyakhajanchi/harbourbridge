@@ -20,7 +20,6 @@
 // 			key public type definitions next (although often it makes sense to put them next to public functions that use them)
 // 			then public functions (and relevant type definitions)
 // 			and helper functions and other non-public definitions last (generally in order of importance)
-
 package conversion
 
 import (
@@ -33,6 +32,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -47,14 +47,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	dydb "github.com/aws/aws-sdk-go/service/dynamodb"
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
 	"golang.org/x/crypto/ssh/terminal"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 	instancepb "google.golang.org/genproto/googleapis/spanner/admin/instance/v1"
 
+	"cloud.google.com/go/storage"
+
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
 	"github.com/cloudspannerecosystem/harbourbridge/sources/common"
 	"github.com/cloudspannerecosystem/harbourbridge/sources/dynamodb"
@@ -62,24 +63,6 @@ import (
 	"github.com/cloudspannerecosystem/harbourbridge/sources/postgres"
 	"github.com/cloudspannerecosystem/harbourbridge/spanner"
 	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
-)
-
-const (
-	// PGDUMP is the driver name for pg_dump.
-	PGDUMP string = "pg_dump"
-	// POSTGRES is the driver name for PostgreSQL.
-	POSTGRES string = "postgres"
-	// MYSQLDUMP is the driver name for mysqldump.
-	MYSQLDUMP string = "mysqldump"
-	// MYSQL is the driver name for MySQL.
-	MYSQL string = "mysql"
-	// DYNAMODB is the driver name for AWS DynamoDB.
-	// This is an experimental driver; implementation in progress.
-	DYNAMODB string = "dynamodb"
-
-	// Target db for which schema is being generated.
-	TARGET_SPANNER               string = "spanner"
-	TARGET_EXPERIMENTAL_POSTGRES string = "experimental_postgres"
 )
 
 var (
@@ -90,20 +73,33 @@ var (
 	MaxWorkers = 20
 )
 
-func SchemaConv(driver string, targetDb string, ioHelper *IOStreams, schemaSampleSize int64) (*internal.Conv, error) {
+// SchemaConv performs the schema conversion
+// TODO: Pass around cmd.SourceProfile instead of sqlConnectionStr and schemaSampleSize.
+// Doing that requires refactoring since that would introduce a circular dependency between
+// conversion.go and cmd/source_profile.go.
+// The sqlConnectionStr param provides the connection details to use the go SQL library.
+// It is empty in the following cases:
+//  - Driver is DynamoDB or a dump file mode.
+//  - This function is called as part of the legacy global CLI flag mode. (This string is constructed from env variables later on)
+// When using source-profile, the sqlConnectionStr is constructed from the input params.
+func SchemaConv(driver, sqlConnectionStr, targetDb string, ioHelper *IOStreams, schemaSampleSize int64) (*internal.Conv, error) {
 	switch driver {
-	case POSTGRES, MYSQL:
-		return schemaFromSQL(driver, targetDb)
-	case PGDUMP, MYSQLDUMP:
+	case constants.POSTGRES, constants.MYSQL, constants.DYNAMODB:
+		return schemaFromDatabase(driver, sqlConnectionStr, targetDb, schemaSampleSize)
+	case constants.PGDUMP, constants.MYSQLDUMP:
 		return schemaFromDump(driver, targetDb, ioHelper)
-	case DYNAMODB:
-		return schemaFromDynamoDB(schemaSampleSize)
 	default:
 		return nil, fmt.Errorf("schema conversion for driver %s not supported", driver)
 	}
 }
 
-func DataConv(driver string, ioHelper *IOStreams, client *sp.Client, conv *internal.Conv, dataOnly bool) (*spanner.BatchWriter, error) {
+// DataConv performs the data conversion
+// The sqlConnectionStr param provides the connection details to use the go SQL library.
+// It is empty in the following cases:
+//  - Driver is DynamoDB or a dump file mode.
+//  - This function is called as part of the legacy global CLI flag mode. (This string is constructed from env variables later on)
+// When using source-profile, the sqlConnectionStr and schemaSampleSize are constructed from the input params.
+func DataConv(driver, sqlConnectionStr string, ioHelper *IOStreams, client *sp.Client, conv *internal.Conv, dataOnly bool, schemaSampleSize int64) (*spanner.BatchWriter, error) {
 	config := spanner.BatchWriterConfig{
 		BytesLimit: 100 * 1000 * 1000,
 		WriteLimit: 40,
@@ -111,99 +107,108 @@ func DataConv(driver string, ioHelper *IOStreams, client *sp.Client, conv *inter
 		Verbose:    internal.Verbose(),
 	}
 	switch driver {
-	case POSTGRES, MYSQL:
-		return dataFromSQL(driver, config, client, conv)
-	case PGDUMP, MYSQLDUMP:
+	case constants.POSTGRES, constants.MYSQL, constants.DYNAMODB:
+		return dataFromDatabase(driver, sqlConnectionStr, config, client, conv, schemaSampleSize)
+	case constants.PGDUMP, constants.MYSQLDUMP:
 		if conv.SpSchema.CheckInterleaved() {
-			return nil, fmt.Errorf("HarbourBridge does not currently support data conversion from dump files\nif the schema contains interleaved tables. Suggest using direct access to source database\ni.e. using drivers postgres and mysql.")
+			return nil, fmt.Errorf("harbourBridge does not currently support data conversion from dump files\nif the schema contains interleaved tables. Suggest using direct access to source database\ni.e. using drivers postgres and mysql")
 		}
 		return dataFromDump(driver, config, ioHelper, client, conv, dataOnly)
-	case DYNAMODB:
-		return dataFromDynamoDB(config, client, conv)
 	default:
 		return nil, fmt.Errorf("data conversion for driver %s not supported", driver)
 	}
 }
 
-func driverConfig(driver string) (string, error) {
+func connectionConfig(driver string, sqlConnectionStr string) (interface{}, error) {
 	switch driver {
-	case POSTGRES:
-		return pgDriverConfig()
-	case MYSQL:
-		return mysqlDriverConfig()
+	case constants.POSTGRES:
+		// If empty, this is called as part of the legacy mode witih global CLI flags.
+		// When using source-profile mode is used, the sqlConnectionStr is already populated.
+		if sqlConnectionStr == "" {
+			return generatePGSQLConnectionStr()
+		}
+		return sqlConnectionStr, nil
+	case constants.MYSQL:
+		// If empty, this is called as part of the legacy mode witih global CLI flags.
+		// When using source-profile mode is used, the sqlConnectionStr is already populated.
+		if sqlConnectionStr == "" {
+			return generateMYSQLConnectionStr()
+		}
+		return sqlConnectionStr, nil
+	case constants.DYNAMODB:
+		return getDynamoDBClientConfig()
 	default:
-		return "", fmt.Errorf("Driver %s not supported", driver)
+		return "", fmt.Errorf("driver %s not supported", driver)
 	}
 }
 
-func pgDriverConfig() (string, error) {
+func generatePGSQLConnectionStr() (string, error) {
 	server := os.Getenv("PGHOST")
 	port := os.Getenv("PGPORT")
 	user := os.Getenv("PGUSER")
 	dbname := os.Getenv("PGDATABASE")
 	if server == "" || port == "" || user == "" || dbname == "" {
 		fmt.Printf("Please specify host, port, user and database using PGHOST, PGPORT, PGUSER and PGDATABASE environment variables\n")
-		return "", fmt.Errorf("Could not connect to source database")
+		return "", fmt.Errorf("could not connect to source database")
 	}
 	password := os.Getenv("PGPASSWORD")
 	if password == "" {
-		password = getPassword()
+		password = GetPassword()
 	}
-	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", server, port, user, password, dbname), nil
+	return GetPGSQLConnectionStr(server, port, user, password, dbname), nil
 }
 
-func mysqlDriverConfig() (string, error) {
+func GetPGSQLConnectionStr(server, port, user, password, dbname string) string {
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", server, port, user, password, dbname)
+}
+
+func generateMYSQLConnectionStr() (string, error) {
 	server := os.Getenv("MYSQLHOST")
 	port := os.Getenv("MYSQLPORT")
 	user := os.Getenv("MYSQLUSER")
 	dbname := os.Getenv("MYSQLDATABASE")
 	if server == "" || port == "" || user == "" || dbname == "" {
 		fmt.Printf("Please specify host, port, user and database using MYSQLHOST, MYSQLPORT, MYSQLUSER and MYSQLDATABASE environment variables\n")
-		return "", fmt.Errorf("Could not connect to source database")
+		return "", fmt.Errorf("could not connect to source database")
 	}
 	password := os.Getenv("MYSQLPWD")
 	if password == "" {
-		password = getPassword()
+		password = GetPassword()
 	}
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, server, port, dbname), nil
+	return GetMYSQLConnectionStr(server, port, user, password, dbname), nil
 }
 
-func schemaFromSQL(driver string, targetDb string) (*internal.Conv, error) {
-	driverConfig, err := driverConfig(driver)
-	if err != nil {
-		return nil, err
+func GetMYSQLConnectionStr(server, port, user, password, dbname string) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, server, port, dbname)
+}
+
+func getDbNameFromSQLConnectionStr(driver, sqlConnectionStr string) string {
+	switch driver {
+	case constants.POSTGRES:
+		dbParam := strings.Split(sqlConnectionStr, " ")[4]
+		return strings.Split(dbParam, "=")[1]
+	case constants.MYSQL:
+		return strings.Split(sqlConnectionStr, ")/")[1]
 	}
-	sourceDB, err := sql.Open(driver, driverConfig)
-	if err != nil {
-		return nil, err
-	}
+	return ""
+}
+
+func schemaFromDatabase(driver, sqlConnectionStr, targetDb string, schemaSampleSize int64) (*internal.Conv, error) {
 	conv := internal.MakeConv()
 	conv.TargetDb = targetDb
-	err = ProcessInfoSchema(driver, conv, sourceDB)
+	infoSchema, err := GetInfoSchema(driver, sqlConnectionStr, schemaSampleSize)
 	if err != nil {
-		return nil, err
+		return conv, err
 	}
-	return conv, nil
+	return conv, common.ProcessSchema(conv, infoSchema)
 }
 
-func dataFromSQL(driver string, config spanner.BatchWriterConfig, client *sp.Client, conv *internal.Conv) (*spanner.BatchWriter, error) {
-	// TODO: Refactor to avoid redundant calls to driverConfig and
-	// Open in schemaFromSQL and dataFromSQL. Also refactor to
-	// share code with dataFromPgDump. Use single transaction for
-	// reading schema and data from source db to get consistent
-	// dump.
-	driverConfig, err := driverConfig(driver)
+func dataFromDatabase(driver, sqlConnectionStr string, config spanner.BatchWriterConfig, client *sp.Client, conv *internal.Conv, schemaSampleSize int64) (*spanner.BatchWriter, error) {
+	infoSchema, err := GetInfoSchema(driver, sqlConnectionStr, schemaSampleSize)
 	if err != nil {
 		return nil, err
 	}
-	sourceDB, err := sql.Open(driver, driverConfig)
-	if err != nil {
-		return nil, err
-	}
-	err = SetRowStats(driver, conv, sourceDB)
-	if err != nil {
-		return nil, err
-	}
+	common.SetRowStats(conv, infoSchema)
 	totalRows := conv.Rows()
 	p := internal.NewProgress(totalRows, "Writing data to Spanner", internal.Verbose(), false)
 	rows := int64(0)
@@ -222,69 +227,81 @@ func dataFromSQL(driver string, config spanner.BatchWriterConfig, client *sp.Cli
 		func(table string, cols []string, vals []interface{}) {
 			writer.AddRow(table, cols, vals)
 		})
-	err = ProcessSQLData(driver, conv, sourceDB)
-	if err != nil {
-		return nil, err
+	conv.DataFlush = func() {
+		writer.Flush()
 	}
+	common.ProcessData(conv, infoSchema)
 	writer.Flush()
 	return writer, nil
 }
 
-func getDynamoDBClientConfig() *aws.Config {
+func getDynamoDBClientConfig() (*aws.Config, error) {
 	cfg := aws.Config{}
 	endpointOverride := os.Getenv("DYNAMODB_ENDPOINT_OVERRIDE")
 	if endpointOverride != "" {
 		cfg.Endpoint = aws.String(endpointOverride)
 	}
-	return &cfg
+	return &cfg, nil
 }
 
-func schemaFromDynamoDB(sampleSize int64) (*internal.Conv, error) {
-	conv := internal.MakeConv()
-	mySession := session.Must(session.NewSession())
-	dydbClient := dydb.New(mySession, getDynamoDBClientConfig())
-	err := dynamodb.ProcessSchema(conv, dydbClient, []string{}, sampleSize)
-	if err != nil {
-		return nil, err
-	}
-	return conv, nil
-}
-
-func dataFromDynamoDB(config spanner.BatchWriterConfig, client *sp.Client, conv *internal.Conv) (*spanner.BatchWriter, error) {
-	mySession := session.Must(session.NewSession())
-	dydbClient := dydb.New(mySession, getDynamoDBClientConfig())
-	dynamodb.SetRowStats(conv, dydbClient)
-	totalRows := conv.Rows()
-	p := internal.NewProgress(totalRows, "Writing data to Spanner", internal.Verbose(), false)
-
-	rows := int64(0)
-	config.Write = func(m []*sp.Mutation) error {
-		_, err := client.Apply(context.Background(), m)
-		if err != nil {
-			return err
-		}
-		atomic.AddInt64(&rows, int64(len(m)))
-		p.MaybeReport(atomic.LoadInt64(&rows))
-		return nil
-	}
-	writer := spanner.NewBatchWriter(config)
-	conv.SetDataMode()
-	conv.SetDataSink(
-		func(table string, cols []string, vals []interface{}) {
-			writer.AddRow(table, cols, vals)
-		})
-
-	err := dynamodb.ProcessData(conv, dydbClient)
-	if err != nil {
-		return nil, err
-	}
-	writer.Flush()
-	return writer, nil
-}
-
+// IOStreams is a struct that contains the file descriptor for dumpFile.
 type IOStreams struct {
 	In, SeekableIn, Out *os.File
 	BytesRead           int64
+}
+
+// downloadFromGCS returns the dump file that is downloaded from GCS
+func downloadFromGCS(bucketName string, filePath string) (*os.File, error) {
+	ctx := context.Background()
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		fmt.Printf("Failed to create GCS client for bucket %q", bucketName)
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	bucket := client.Bucket(bucketName)
+	rc, err := bucket.Object(filePath).NewReader(ctx)
+	if err != nil {
+		fmt.Printf("readFile: unable to open file from bucket %q, file %q: %v", bucketName, filePath, err)
+		log.Fatal(err)
+		return nil, err
+	}
+	defer rc.Close()
+	r := bufio.NewReader(rc)
+
+	tmpfile, err := ioutil.TempFile("", "harbourbridge.gcs.data")
+	if err != nil {
+		fmt.Printf("saveFile: unable to open temporary file to save dump file from GCS bucket %v", err)
+		log.Fatal(err)
+		return nil, err
+	}
+	syscall.Unlink(tmpfile.Name()) // File will be deleted when this process exits.
+
+	fmt.Printf("\nDownloading dump file from GCS bucket %s, path %s\n", bucketName, filePath)
+	buffer := make([]byte, 1024)
+	for {
+		// read a chunk
+		n, err := r.Read(buffer[:cap(buffer)])
+
+		if err != nil && err != io.EOF {
+			fmt.Printf("readFile: unable to read entire dump file from bucket %s, file %s: %v", bucketName, filePath, err)
+			log.Fatal(err)
+			return nil, err
+		}
+		if n == 0 && err == io.EOF {
+			break
+		}
+
+		// write a chunk
+		if _, err = tmpfile.Write(buffer[:n]); err != nil {
+			fmt.Printf("saveFile: unable to save read data from bucket %s, file %s: %v", bucketName, filePath, err)
+			log.Fatal(err)
+		}
+	}
+
+	return tmpfile, nil
 }
 
 // NewIOStreams returns a new IOStreams struct such that input stream is set
@@ -292,9 +309,22 @@ type IOStreams struct {
 // Input stream defaults to stdin. Output stream is always set to stdout.
 func NewIOStreams(driver string, dumpFile string) IOStreams {
 	io := IOStreams{In: os.Stdin, Out: os.Stdout}
-	if (driver == PGDUMP || driver == MYSQLDUMP) && dumpFile != "" {
+	u, err := url.Parse(dumpFile)
+	if err != nil {
+		fmt.Printf("parseFilePath: unable parse file path for dumpfile %s", dumpFile)
+		log.Fatal(err)
+	}
+	if (driver == constants.PGDUMP || driver == constants.MYSQLDUMP) && dumpFile != "" {
 		fmt.Printf("\nLoading dump file from path: %s\n", dumpFile)
-		f, err := os.Open(dumpFile)
+		var f *os.File
+		var err error
+		if u.Scheme == "gs" {
+			bucketName := u.Host
+			filePath := u.Path[1:] // removes "/" from beginning of path
+			f, err = downloadFromGCS(bucketName, filePath)
+		} else {
+			f, err = os.Open(dumpFile)
+		}
 		if err != nil {
 			fmt.Printf("\nError reading dump file: %v err:%v\n", dumpFile, err)
 			log.Fatal(err)
@@ -367,6 +397,9 @@ func dataFromDump(driver string, config spanner.BatchWriterConfig, ioHelper *IOS
 		func(table string, cols []string, vals []interface{}) {
 			writer.AddRow(table, cols, vals)
 		})
+	conv.DataFlush = func() {
+		writer.Flush()
+	}
 	ProcessDump(driver, conv, r)
 	writer.Flush()
 	p.Done()
@@ -435,7 +468,7 @@ func getSeekable(f *os.File) (*os.File, int64, error) {
 	if err != nil {
 		return nil, 0, fmt.Errorf("can't reset file offset: %w", err)
 	}
-	n, err := getSize(fcopy)
+	n, _ := getSize(fcopy)
 	return fcopy, n, nil
 }
 
@@ -471,11 +504,12 @@ func ValidateDDL(ctx context.Context, adminClient *database.DatabaseAdminClient,
 		return fmt.Errorf("can't fetch database ddl: %v", err)
 	}
 	if len(dbDdl.Statements) != 0 {
-		return fmt.Errorf("HarbourBridge supports writing to existing databases only if they have an empty schema")
+		return fmt.Errorf("harbourBridge supports writing to existing databases only if they have an empty schema")
 	}
 	return nil
 }
 
+// CreatesOrUpdatesDatabase updates an existing Spanner database or creates a new one if one does not exist.
 func CreateOrUpdateDatabase(ctx context.Context, adminClient *database.DatabaseAdminClient, dbURI string, conv *internal.Conv, out *os.File) error {
 	dbExists, err := VerifyDb(ctx, adminClient, dbURI)
 	if err != nil {
@@ -506,12 +540,22 @@ func CreateDatabase(ctx context.Context, adminClient *database.DatabaseAdminClie
 	// Spanner DDL doesn't accept them), and protects table and col names
 	// using backticks (to avoid any issues with Spanner reserved words).
 	// Foreign Keys are set to false since we create them post data migration.
-	schema := conv.SpSchema.GetDDL(ddl.Config{Comments: false, ProtectIds: true, Tables: true, ForeignKeys: false})
-	op, err := adminClient.CreateDatabase(ctx, &adminpb.CreateDatabaseRequest{
-		Parent:          fmt.Sprintf("projects/%s/instances/%s", project, instance),
-		CreateStatement: "CREATE DATABASE `" + dbName + "`",
-		ExtraStatements: schema,
-	})
+	req := &adminpb.CreateDatabaseRequest{
+		Parent: fmt.Sprintf("projects/%s/instances/%s", project, instance),
+	}
+	if conv.TargetDb == constants.TargetExperimentalPostgres {
+		// TargetExperimentalPostgres doesn't support:
+		// a) backticks around the database name, and
+		// b) DDL statements as part of a CreateDatabase operation (so schema
+		// must be set using a separate UpdateDatabase operation).
+		req.CreateStatement = "CREATE DATABASE \"" + dbName + "\""
+		req.DatabaseDialect = adminpb.DatabaseDialect_POSTGRESQL
+	} else {
+		req.CreateStatement = "CREATE DATABASE `" + dbName + "`"
+		req.ExtraStatements = conv.SpSchema.GetDDL(ddl.Config{Comments: false, ProtectIds: true, Tables: true, ForeignKeys: false, TargetDb: conv.TargetDb})
+	}
+
+	op, err := adminClient.CreateDatabase(ctx, req)
 	if err != nil {
 		return fmt.Errorf("can't build CreateDatabaseRequest: %w", AnalyzeError(err, dbURI))
 	}
@@ -519,19 +563,27 @@ func CreateDatabase(ctx context.Context, adminClient *database.DatabaseAdminClie
 		return fmt.Errorf("createDatabase call failed: %w", AnalyzeError(err, dbURI))
 	}
 	fmt.Fprintf(out, "Created database successfully.\n")
+
+	if conv.TargetDb == constants.TargetExperimentalPostgres {
+		// Update schema separately for PG databases.
+		return UpdateDatabase(ctx, adminClient, dbURI, conv, out)
+	}
 	return nil
 }
 
+// UpdateDatabase updates an existing spanner database.
 func UpdateDatabase(ctx context.Context, adminClient *database.DatabaseAdminClient, dbURI string, conv *internal.Conv, out *os.File) error {
 	fmt.Fprintf(out, "Updating schema for %s with default permissions ... \n", dbURI)
 	// The schema we send to Spanner excludes comments (since Cloud
 	// Spanner DDL doesn't accept them), and protects table and col names
 	// using backticks (to avoid any issues with Spanner reserved words).
 	// Foreign Keys are set to false since we create them post data migration.
-	op, err := adminClient.UpdateDatabaseDdl(ctx, &adminpb.UpdateDatabaseDdlRequest{
+	schema := conv.SpSchema.GetDDL(ddl.Config{Comments: false, ProtectIds: false, Tables: true, ForeignKeys: false, TargetDb: conv.TargetDb})
+	req := &adminpb.UpdateDatabaseDdlRequest{
 		Database:   dbURI,
-		Statements: conv.SpSchema.GetDDL(ddl.Config{Comments: false, ProtectIds: true, Tables: true, ForeignKeys: false}),
-	})
+		Statements: schema,
+	}
+	op, err := adminClient.UpdateDatabaseDdl(ctx, req)
 	if err != nil {
 		return fmt.Errorf("can't build UpdateDatabaseDdlRequest: %w", AnalyzeError(err, dbURI))
 	}
@@ -610,15 +662,15 @@ Recommended value is between 20-30.`)
 	// too many requests and get throttled due to network or hitting catalog memory limits.
 	// Ensure atmost `MaxWorkers` go routines run in parallel that each update the ddl with one foreign key statement.
 	for _, fkStmt := range fkStmts {
-		workerId := <-workers
-		go func(fkStmt string, workerId int) {
+		workerID := <-workers
+		go func(fkStmt string, workerID int) {
 			defer func() {
 				// Locking the progress reporting otherwise progress results displayed could be in random order.
 				progressMutex.Lock()
 				progress++
 				p.MaybeReport(progress)
 				progressMutex.Unlock()
-				workers <- workerId
+				workers <- workerID
 			}()
 			internal.VerbosePrintf("Submitting new FK create request: %s\n", fkStmt)
 			op, err := adminClient.UpdateDatabaseDdl(ctx, &adminpb.UpdateDatabaseDdlRequest{
@@ -636,7 +688,7 @@ Recommended value is between 20-30.`)
 				return
 			}
 			internal.VerbosePrintln("Updated schema with statement: " + fkStmt)
-		}(fkStmt, workerId)
+		}(fkStmt, workerID)
 	}
 	// Wait for all the goroutines to finish.
 	for i := 1; i <= MaxWorkers; i++ {
@@ -876,7 +928,7 @@ func GetDatabaseName(driver string, now time.Time) (string, error) {
 	return generateName(fmt.Sprintf("%s_%s", driver, now.Format("2006-01-02")))
 }
 
-func getPassword() string {
+func GetPassword() string {
 	fmt.Print("Enter Password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
 	if err != nil {
@@ -893,21 +945,19 @@ func AnalyzeError(err error, URI string) error {
 	project, instance, _ := parseURI(URI)
 	e := strings.ToLower(err.Error())
 	if containsAny(e, []string{"unauthenticated", "cannot fetch token", "default credentials"}) {
-		return fmt.Errorf("%w.\n"+`
+		return fmt.Errorf("%w."+`
 Possible cause: credentials are mis-configured. Do you need to run
 
   gcloud auth application-default login
 
 or configure environment variable GOOGLE_APPLICATION_CREDENTIALS.
-See https://cloud.google.com/docs/authentication/getting-started.
-`, err)
+See https://cloud.google.com/docs/authentication/getting-started`, err)
 	}
 	if containsAny(e, []string{"instance not found"}) && instance != "" {
 		return fmt.Errorf("%w.\n"+`
 Possible cause: Spanner instance specified via instance option does not exist.
 Please check that '%s' is correct and that it is a valid Spanner
-instance for project %s.
-`, err, instance, project)
+instance for project %s`, err, instance, project)
 	}
 	return err
 }
@@ -1037,50 +1087,39 @@ func GetBanner(now time.Time, db string) string {
 // ProcessDump invokes process dump function from a sql package based on driver selected.
 func ProcessDump(driver string, conv *internal.Conv, r *internal.Reader) error {
 	switch driver {
-	case MYSQLDUMP:
+	case constants.MYSQLDUMP:
 		return common.ProcessDbDump(conv, r, mysql.DbDumpImpl{})
-	case PGDUMP:
+	case constants.PGDUMP:
 		return common.ProcessDbDump(conv, r, postgres.DbDumpImpl{})
 	default:
 		return fmt.Errorf("process dump for driver %s not supported", driver)
 	}
 }
 
-// ProcessInfoSchema invokes process infoschema function from a sql package based on driver selected.
-func ProcessInfoSchema(driver string, conv *internal.Conv, db *sql.DB) error {
-	switch driver {
-	case MYSQL:
-		return common.ProcessInfoSchema(conv, db, mysql.InfoSchemaImpl{os.Getenv("MYSQLDATABASE")})
-	case POSTGRES:
-		return common.ProcessInfoSchema(conv, db, postgres.InfoSchemaImpl{})
-	default:
-		return fmt.Errorf("schema conversion for driver %s not supported", driver)
+func GetInfoSchema(driver, sqlConnectionStr string, schemaSampleSize int64) (common.InfoSchema, error) {
+	connectionConfig, err := connectionConfig(driver, sqlConnectionStr)
+	if err != nil {
+		return nil, err
 	}
-}
-
-// SetRowStats invokes SetRowStats function from a sql package based on driver selected.
-func SetRowStats(driver string, conv *internal.Conv, db *sql.DB) error {
 	switch driver {
-	case MYSQL:
-		common.SetRowStats(conv, db, mysql.InfoSchemaImpl{os.Getenv("MYSQLDATABASE")})
-	case POSTGRES:
-		common.SetRowStats(conv, db, postgres.InfoSchemaImpl{})
+	case constants.MYSQL:
+		db, err := sql.Open(driver, connectionConfig.(string))
+		dbName := getDbNameFromSQLConnectionStr(driver, connectionConfig.(string))
+		if err != nil {
+			return nil, err
+		}
+		return mysql.InfoSchemaImpl{DbName: dbName, Db: db}, nil
+	case constants.POSTGRES:
+		db, err := sql.Open(driver, connectionConfig.(string))
+		if err != nil {
+			return nil, err
+		}
+		return postgres.InfoSchemaImpl{Db: db}, nil
+	case constants.DYNAMODB:
+		mySession := session.Must(session.NewSession())
+		dydbClient := dydb.New(mySession, connectionConfig.(*aws.Config))
+		return dynamodb.InfoSchemaImpl{DynamoClient: dydbClient, SampleSize: schemaSampleSize}, nil
 	default:
-		return fmt.Errorf("Could not set rows stats for '%s' driver", driver)
+		return nil, fmt.Errorf("driver %s not supported", driver)
 	}
-	return nil
-}
-
-// ProcessSQLData invokes ProcessSQLData function from a sql package based on driver selected.
-func ProcessSQLData(driver string, conv *internal.Conv, db *sql.DB) error {
-	switch driver {
-	//TODO - move this logic into a factory within the sources dir
-	case MYSQL:
-		common.ProcessSQLData(conv, db, mysql.InfoSchemaImpl{os.Getenv("MYSQLDATABASE")})
-	case POSTGRES:
-		common.ProcessSQLData(conv, db, postgres.InfoSchemaImpl{})
-	default:
-		return fmt.Errorf("Data conversion for driver %s is not supported", driver)
-	}
-	return nil
 }

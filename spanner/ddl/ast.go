@@ -26,9 +26,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
 )
 
 const (
+	// Types supported by Spanner with google_standard_sql (default) dialect.
 	// Bool represent BOOL type.
 	Bool string = "BOOL"
 	// Bytes represent BYTES type.
@@ -46,9 +49,24 @@ const (
 	// Numeric represent NUMERIC type.
 	Numeric string = "NUMERIC"
 	// Json represent JSON type.
-	Json string = "JSON"
+	JSON string = "JSON"
 	// MaxLength is a sentinel for Type's Len field, representing the MAX value.
 	MaxLength = math.MaxInt64
+
+	// Types specific to Spanner with postgresql dialect, when they differ from
+	// Spanner with google_standard_sql.
+	// PGBytea represent BYTEA type, which is BYTES type in PG.
+	PGBytea string = "BYTEA"
+	// PGFloat8 represent FLOAT8 type, which is double type in PG.
+	PGFloat8 string = "FLOAT8"
+	// PGInt8 respresent INT8, which is INT type in PG.
+	PGInt8 string = "INT8"
+	// PGVarchar represent VARCHAR, which is STRING type in PG.
+	PGVarchar string = "VARCHAR"
+	// PGTimestamptz represent TIMESTAMPTZ, which is TIMESTAMP type in PG.
+	PGTimestamptz string = "TIMESTAMPTZ"
+	// PGMaxLength represents sentinel for Type's Len field in PG.
+	PGMaxLength = 2621440
 )
 
 // Type represents the type of a column.
@@ -83,6 +101,42 @@ func (ty Type) PrintColumnDefType() string {
 	return str
 }
 
+func (ty Type) PGPrintColumnDefType() string {
+	var str string
+	switch ty.Name {
+	case Bytes:
+		str = PGBytea
+	case Float64:
+		str = PGFloat8
+	case Int64:
+		str = PGInt8
+	case String:
+		str = PGVarchar
+	case Timestamp:
+		str = PGTimestamptz
+	default:
+		str = ty.Name
+	}
+	// PG doesn't support array types, and we don't expect to receive a type
+	// with IsArray set to true. In the unlikely event, set to string type.
+	if ty.IsArray {
+		str = PGVarchar
+		ty.Len = PGMaxLength
+	}
+	// PG doesn't support variable length Bytea and thus doesn't support
+	// setting length (or max length) for the Bytes.
+	if ty.Name == String || ty.IsArray {
+		str += "("
+		if ty.Len == MaxLength || ty.Len == PGMaxLength {
+			str += fmt.Sprintf("%v", PGMaxLength)
+		} else {
+			str += strconv.FormatInt(ty.Len, 10)
+		}
+		str += ")"
+	}
+	return str
+}
+
 // ColumnDef encodes the following DDL definition:
 //     column_def:
 //       column_name type [NOT NULL] [options_def]
@@ -99,6 +153,7 @@ type Config struct {
 	ProtectIds  bool // If true, table and col names are quoted using backticks (avoids reserved-word issue).
 	Tables      bool // If true, print tables
 	ForeignKeys bool // If true, print foreign key constraints.
+	TargetDb    string
 }
 
 func (c Config) quote(s string) string {
@@ -112,7 +167,12 @@ func (c Config) quote(s string) string {
 // comment. These are returned as separate strings to support formatting
 // needs of PrintCreateTable.
 func (cd ColumnDef) PrintColumnDef(c Config) (string, string) {
-	s := fmt.Sprintf("%s %s", c.quote(cd.Name), cd.T.PrintColumnDefType())
+	var s string
+	if c.TargetDb == constants.TargetExperimentalPostgres {
+		s = fmt.Sprintf("%s %s", c.quote(cd.Name), cd.T.PGPrintColumnDefType())
+	} else {
+		s = fmt.Sprintf("%s %s", c.quote(cd.Name), cd.T.PrintColumnDefType())
+	}
 	if cd.NotNull {
 		s += " NOT NULL"
 	}
@@ -181,17 +241,13 @@ func (ct CreateTable) PrintCreateTable(config Config) string {
 	var col []string
 	var colComment []string
 	var keys []string
-	for i, cn := range ct.ColNames {
+	for _, cn := range ct.ColNames {
 		s, c := ct.ColDefs[cn].PrintColumnDef(config)
-		s = "\n    " + s
-		if i < len(ct.ColNames)-1 {
-			s += ","
-		} else {
-			s += " "
-		}
+		s = "\t" + s + ","
 		col = append(col, s)
 		colComment = append(colComment, c)
 	}
+
 	n := maxStringLength(col)
 	var cols string
 	for i, c := range col {
@@ -199,7 +255,9 @@ func (ct CreateTable) PrintCreateTable(config Config) string {
 		if config.Comments && len(colComment[i]) > 0 {
 			cols += strings.Repeat(" ", n-len(c)) + " -- " + colComment[i]
 		}
+		cols += "\n"
 	}
+
 	for _, p := range ct.Pks {
 		keys = append(keys, p.PrintIndexKey(config))
 	}
@@ -207,11 +265,22 @@ func (ct CreateTable) PrintCreateTable(config Config) string {
 	if config.Comments && len(ct.Comment) > 0 {
 		tableComment = "--\n-- " + ct.Comment + "\n--\n"
 	}
+
 	var interleave string
 	if ct.Parent != "" {
-		interleave = ",\nINTERLEAVE IN PARENT " + config.quote(ct.Parent)
+		if config.TargetDb == constants.TargetExperimentalPostgres {
+			// PG spanner only supports PRIMARY KEY() inside the CREATE TABLE()
+			// and thus INTERLEAVE follows immediately after closing brace.
+			interleave = " INTERLEAVE IN PARENT " + config.quote(ct.Parent)
+		} else {
+			interleave = ",\nINTERLEAVE IN PARENT " + config.quote(ct.Parent)
+		}
 	}
-	return fmt.Sprintf("%sCREATE TABLE %s (%s\n) PRIMARY KEY (%s)%s", tableComment, config.quote(ct.Name), cols, strings.Join(keys, ", "), interleave)
+
+	if config.TargetDb == constants.TargetExperimentalPostgres {
+		return fmt.Sprintf("%sCREATE TABLE %s (\n%s\tPRIMARY KEY (%s)\n)%s", tableComment, config.quote(ct.Name), cols, strings.Join(keys, ", "), interleave)
+	}
+	return fmt.Sprintf("%sCREATE TABLE %s (\n%s) PRIMARY KEY (%s)%s", tableComment, config.quote(ct.Name), cols, strings.Join(keys, ", "), interleave)
 }
 
 // CreateIndex encodes the following DDL definition:
@@ -232,7 +301,7 @@ func (ci CreateIndex) PrintCreateIndex(c Config) string {
 		keys = append(keys, p.PrintIndexKey(c))
 	}
 	var unique string
-	if ci.Unique == true {
+	if ci.Unique {
 		unique = "UNIQUE "
 	}
 	return fmt.Sprintf("CREATE %sINDEX %s ON %s (%s)", unique, c.quote(ci.Name), c.quote(ci.Table), strings.Join(keys, ", "))
@@ -252,10 +321,48 @@ func (k Foreignkey) PrintForeignKeyAlterTable(c Config, tableName string) string
 	return fmt.Sprintf("ALTER TABLE %s ADD %sFOREIGN KEY (%s) REFERENCES %s (%s)", c.quote(tableName), s, strings.Join(cols, ", "), c.quote(k.ReferTable), strings.Join(referCols, ", "))
 }
 
+// Schema stores a map of table names and Tables.
 type Schema map[string]CreateTable
 
+// NewSchema creates a new Schema object.
 func NewSchema() Schema {
 	return make(map[string]CreateTable)
+}
+
+// Tables are ordered in alphabetical order with one exception: interleaved
+// tables appear after the definition of their parent table.
+// TODO: Move this method to mapping.go and preserve the table names in sorted
+// order in conv so that we don't need to order the table names multiple times.
+func OrderTables(s Schema) []string {
+	var tableNames, sortedTableNames []string
+	for t := range s {
+		tableNames = append(tableNames, t)
+	}
+	sort.Strings(tableNames)
+	tableQueue := tableNames
+	tableAdded := make(map[string]bool)
+	for len(tableQueue) > 0 {
+		tableName := tableQueue[0]
+		table := s[tableName]
+		tableQueue = tableQueue[1:]
+
+		// Add table t if either:
+		// a) t is not interleaved in another table, or
+		// b) t is interleaved in another table and that table has already been added to the list.
+		if table.Parent == "" || tableAdded[table.Parent] {
+			sortedTableNames = append(sortedTableNames, tableName)
+			tableAdded[tableName] = true
+		} else {
+			// We can't add table t now because its parent hasn't been added.
+			// Add it at end of tables and we'll try again later.
+			// We might need multiple iterations to add chains of interleaved tables,
+			// but we will always make progress because interleaved tables can't
+			// have cycles. In principle this could be O(n^2), but in practice chains
+			// of interleaved tables are small.
+			tableQueue = append(tableQueue, tableName)
+		}
+	}
+	return sortedTableNames
 }
 
 // GetDDL returns the string representation of Spanner schema represented by Schema struct.
@@ -264,38 +371,13 @@ func NewSchema() Schema {
 // definition of their parent table.
 func (s Schema) GetDDL(c Config) []string {
 	var ddl []string
-
-	var tableNames []string
-	for t := range s {
-		tableNames = append(tableNames, t)
-	}
-	sort.Strings(tableNames)
+	sortedTableNames := OrderTables(s)
 
 	if c.Tables {
-		tableQueue := tableNames
-		printed := make(map[string]bool)
-		for len(tableQueue) > 0 {
-			tableName := tableQueue[0]
-			table := s[tableName]
-			tableQueue = tableQueue[1:]
-
-			// Print table t if either:
-			// a) t is not interleaved in another table, or
-			// b) t is interleaved in another table and that table has already been printed.
-			if table.Parent == "" || printed[table.Parent] {
-				ddl = append(ddl, table.PrintCreateTable(c))
-				for _, index := range table.Indexes {
-					ddl = append(ddl, index.PrintCreateIndex(c))
-				}
-				printed[tableName] = true
-			} else {
-				// We can't print table t now because its parent hasn't been printed.
-				// Add it at end of tables and we'll try again later.
-				// We might need multiple iterations to print chains of interleaved tables,
-				// but we will always make progress because interleaved tables can't
-				// have cycles. In principle this could be O(n^2), but in practice chains
-				// of interleaved tables are small.
-				tableQueue = append(tableQueue, tableName)
+		for _, tableName := range sortedTableNames {
+			ddl = append(ddl, s[tableName].PrintCreateTable(c))
+			for _, index := range s[tableName].Indexes {
+				ddl = append(ddl, index.PrintCreateIndex(c))
 			}
 		}
 	}
@@ -306,7 +388,7 @@ func (s Schema) GetDDL(c Config) []string {
 	// before they are referenced by foreign key constraints) and the possibility
 	// of circular foreign keys definitions. We opt for simplicity.
 	if c.ForeignKeys {
-		for _, t := range tableNames {
+		for _, t := range sortedTableNames {
 			for _, fk := range s[t].Fks {
 				ddl = append(ddl, fk.PrintForeignKeyAlterTable(c, t))
 			}

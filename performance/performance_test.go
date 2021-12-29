@@ -17,6 +17,7 @@ package performance_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"os"
@@ -25,6 +26,8 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/cloudspannerecosystem/harbourbridge/common/constants"
+	"github.com/cloudspannerecosystem/harbourbridge/conversion"
+	"github.com/cloudspannerecosystem/harbourbridge/performance/util"
 	"github.com/cloudspannerecosystem/harbourbridge/testing/common"
 	"google.golang.org/appengine/aetest"
 	"google.golang.org/appengine/log"
@@ -43,6 +46,13 @@ type demo struct {
 	// failed indicates that one or more of the demo steps failed.
 	failed bool
 }
+
+const (
+	dbName                        = "testdb"
+	instanceID                    = "shreya-test"
+	projectID                     = "e2e-debugging"
+	host, user, db_name, password = "localhost", "root", "testdb", "me@SHREYA1998!"
+)
 
 func TestMain(m *testing.M) {
 
@@ -106,16 +116,98 @@ func (d *demo) createFile(fileName string) {
 	}
 }
 
-func TestIntegration_MYSQLDUMP_Command(t *testing.T) {
+func TestIntegration_MYSQL_SchemaAndDataSubcommand(t *testing.T) {
 
-	dbName := "shreya123"
-	//dbURI := fmt.Sprintf("projects/%s/instances/%s/databases/%s", "e2e-debugging", "hb-spangres-testing", dbName)
-	dataFilepath := "https://storage.cloud.google.com/shreya-test/mysqldump.test.out"
-	filePrefix := "abc.txt"
-
-	args := fmt.Sprintf("-driver %s -prefix %s -instance %s -dbname %s < %s", constants.MYSQLDUMP, filePrefix, "hb-spangres-testing", dbName, dataFilepath)
-	err := common.RunCommand(args, "e2e-debugging")
+	envVars := common.ClearEnvVariables([]string{"MYSQLHOST", "MYSQLUSER", "MYSQLDATABASE", "MYSQLPWD"})
+	args := fmt.Sprintf("schema-and-data -source=%s  -source-profile='host=%s,user=%s,db_name=%s,password=%s' -target-profile='instance=%s,dbname=%s'", constants.MYSQL, host, user, db_name, password, instanceID, dbName)
+	err := common.RunCommand(args, projectID)
+	common.RestoreEnvVariables(envVars)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestIntegration_MYSQLDUMP_Command(t *testing.T) {
+
+	dbName := "shreya123"
+	dataFilepath := "https://storage.cloud.google.com/shreya-test/mysqldump.test.out"
+	filePrefix := "abc.txt"
+
+	args := fmt.Sprintf("-driver %s -prefix %s -instance %s -dbname %s < %s", constants.MYSQLDUMP, filePrefix, instanceID, dbName, dataFilepath)
+	err := common.RunCommand(args, projectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestIntegration_MYSQL_LoadSampleData(t *testing.T) {
+	connString := conversion.GetMYSQLConnectionStr("localhost", "3306", "root", "me@SHREYA1998!", "")
+	db, err := sql.Open("mysql", connString)
+	if err != nil {
+		print("error")
+		return
+	}
+	defer db.Close()
+
+	db.Exec("DROP DATABASE IF EXISTS " + dbName)
+	_, err = db.Exec("CREATE DATABASE " + dbName)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.Exec("USE " + dbName)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.Exec("CREATE TABLE example ( id integer, data varchar(32) )")
+	if err != nil {
+		panic(err)
+	}
+	connString = conversion.GetMYSQLConnectionStr("localhost", "3306", "root", "me@SHREYA1998!", "testdb")
+	db, err = sql.Open("mysql", connString)
+	if err != nil {
+		print("error")
+		return
+	}
+
+	qry := "INSERT INTO example(id, data) VALUES (?, ?)"
+	tx, stmt, e := PrepareTx(db, qry)
+	if e != nil {
+		panic(e)
+	}
+
+	defer tx.Rollback()
+	for i := 1; i <= 10000000; i++ {
+		_, err = stmt.Exec(util.RandomInt(0, 100), util.RandomString(5))
+		if err != nil {
+			panic(err)
+		}
+		// To avoid huge transactions
+		if i%50000 == 0 {
+			if e := tx.Commit(); e != nil {
+				panic(e)
+			} else {
+				// can only commit once per transaction
+				tx, stmt, e = PrepareTx(db, qry)
+				if e != nil {
+					panic(e)
+				}
+			}
+		}
+	}
+
+	print("Inserted")
+
+}
+
+func PrepareTx(db *sql.DB, qry string) (tx *sql.Tx, s *sql.Stmt, e error) {
+	if tx, e = db.Begin(); e != nil {
+		return
+	}
+
+	if s, e = tx.Prepare(qry); e != nil {
+		tx.Commit()
+	}
+	return
 }

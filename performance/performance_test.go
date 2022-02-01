@@ -15,7 +15,6 @@
 package performance_test
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
@@ -29,7 +28,6 @@ import (
 	"github.com/cloudspannerecosystem/harbourbridge/conversion"
 	"github.com/cloudspannerecosystem/harbourbridge/performance/util"
 	"github.com/cloudspannerecosystem/harbourbridge/testing/common"
-	"google.golang.org/appengine/aetest"
 	"google.golang.org/appengine/log"
 )
 
@@ -56,9 +54,9 @@ const (
 
 func TestMain(m *testing.M) {
 
-	ctx, done, _ := aetest.NewContext()
-	defer done()
-	bucket := "shreya-test"
+	//ctx, done, _ := aetest.NewContext()
+	//defer done()
+	/*bucket := "shreya-test"
 
 	client, err := storage.NewClient(ctx)
 	if err != nil {
@@ -78,7 +76,7 @@ func TestMain(m *testing.M) {
 	}
 
 	n := "demo-testfile-go"
-	d.createFile(n)
+	d.createFile(n)*/
 	res := m.Run()
 	os.Exit(res)
 }
@@ -140,8 +138,13 @@ func TestIntegration_MYSQLDUMP_Command(t *testing.T) {
 	}
 }
 
+func TestIntegration_MYSQL_Command_Hello(t *testing.T) {
+	print("Hello")
+}
+
 func TestIntegration_MYSQL_LoadSampleData(t *testing.T) {
-	connString := conversion.GetMYSQLConnectionStr("localhost", "3306", "root", "me@SHREYA1998!", "")
+	host, user, password, port := os.Getenv("MYSQLHOST"), os.Getenv("MYSQLUSER"), os.Getenv("MYSQLPWD"), os.Getenv("MYSQLPORT")
+	connString := conversion.GetMYSQLConnectionStr(host, port, user, password, "")
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
 		print("error")
@@ -164,7 +167,7 @@ func TestIntegration_MYSQL_LoadSampleData(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	connString = conversion.GetMYSQLConnectionStr("localhost", "3306", "root", "me@SHREYA1998!", "testdb")
+	connString = conversion.GetMYSQLConnectionStr(host, port, user, password, "testdb")
 	db, err = sql.Open("mysql", connString)
 	if err != nil {
 		print("error")
@@ -178,7 +181,7 @@ func TestIntegration_MYSQL_LoadSampleData(t *testing.T) {
 	}
 
 	defer tx.Rollback()
-	for i := 1; i <= 10000000; i++ {
+	for i := 1; i <= 100; i++ {
 		_, err = stmt.Exec(util.RandomInt(0, 100), util.RandomString(5))
 		if err != nil {
 			panic(err)

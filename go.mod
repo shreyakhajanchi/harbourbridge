@@ -12,6 +12,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.11.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6
 	github.com/google/subcommands v1.2.0
 	github.com/gorilla/handlers v1.5.0
@@ -30,6 +31,7 @@ require (
 	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/api v0.57.0
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6
+	google.golang.org/protobuf v1.27.1 // indirect
 	honnef.co/go/tools v0.2.1 // indirect
 )
 

@@ -8,10 +8,8 @@ require (
 	cloud.google.com/go/storage v1.17.0
 	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/aws/aws-sdk-go v1.34.5
-	github.com/basgys/goxml2json v1.1.0
-	github.com/bitly/go-simplejson v0.5.0 // indirect
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
-	github.com/denisenkom/go-mssqldb v0.11.0
+	github.com/basgys/goxml2json v1.1.0 // indirect
+	github.com/denisenkom/go-mssqldb v0.11.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/go-cmp v0.5.6
@@ -32,9 +30,8 @@ require (
 	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/api v0.57.0
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6
-	google.golang.org/grpc v1.40.0
-	google.golang.org/protobuf v1.27.1
 	honnef.co/go/tools v0.2.1 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )
 
 // cloud.google.com/go will upgrade grpc to v1.40.0

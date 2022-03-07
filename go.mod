@@ -38,7 +38,7 @@ require (
 // cloud.google.com/go will upgrade grpc to v1.40.0
 // We need keep the replacement since google.golang.org/grpc/naming isn't
 // available in higher versions.
-replace google.golang.org/grpc => google.golang.org/grpc v1.29.1
+replace google.golang.org/grpc => google.golang.org/grpc v1.40.0
 
 // Temporary workaround until PG support is available in
 // cloud.google.com/go/spanner public release.

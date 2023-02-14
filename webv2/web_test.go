@@ -2386,6 +2386,57 @@ func TestApplyRule(t *testing.T) {
 	}
 }
 
+func TestUpdateIndexes(t *testing.T) {
+	tc := []struct {
+		name         string
+		table        string
+		payload      string
+		statusCode   int64
+		conv         *internal.Conv
+		expectedConv *internal.Conv
+	}{
+		{
+			name: "Test bad request",
+			payload: `{
+				"Name":              "rule1",
+				"Type":              "global_datatype_change",
+				"ObjectType":        "Column",
+				"AssociatedObjects": "All Columns",
+				"Enabled":           true,
+				"Data":
+		{
+		  	"bool":"INT64",
+			"smallint":"STRING",
+		}
+			}`,
+			statusCode: http.StatusBadRequest,
+		},
+	}
+	for _, tc := range tc {
+		sessionState := session.GetSessionState()
+		sessionState.Driver = constants.MYSQL
+		sessionState.Conv = tc.conv
+		payload := tc.payload
+		req, err := http.NewRequest("POST", "/update/indexes?table="+tc.table, strings.NewReader(payload))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+		handler := http.HandlerFunc(updateIndexes)
+		handler.ServeHTTP(rr, req)
+		var res *internal.Conv
+		json.Unmarshal(rr.Body.Bytes(), &res)
+		if status := rr.Code; int64(status) != tc.statusCode {
+			t.Errorf("%s : handler returned wrong status code: got %v want %v",
+				tc.name, status, tc.statusCode)
+		}
+		if tc.statusCode == http.StatusOK {
+			assert.Equal(t, tc.expectedConv, res)
+		}
+	}
+}
+
 func TestDropRule(t *testing.T) {
 	tc := []struct {
 		name         string

@@ -51,3 +51,7 @@ func TestToType(t *testing.T) {
 		assert.Equal(t, tc.expColumnType, ty, tc.name)
 	}
 }
+
+func TestRowCount(t *testing.T) {
+
+}

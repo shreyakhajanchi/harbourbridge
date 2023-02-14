@@ -118,8 +118,11 @@ jobs:
         run: |
           curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
           curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
-          sudo apt-get update 
+          sudo apt purge unixodbc unixodbc-dev msodbcsql17
+          sudo apt-get update
+          sudo apt purge unixodbc unixodbc-dev msodbcsql17
           sudo apt-get install mssql-tools unixodbc-dev
+          sudo apt purge unixodbc unixodbc-dev msodbcsql17
           echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile
       - run: sqlcmd -?
       - run: sqlcmd -U sa -P ${MSSQL_SA_PASSWORD} -i test_data/sqlserver.test.out

@@ -249,6 +249,7 @@ export class ConversionService {
     this.standardTypeToPGSQLTypeMap.subscribe((typemap) => {
       standardTypeToPGSQLTypemap = typemap
     })
+    console.log(data.SrcSchema[srcTableName])
     const res: IColumnTabData[] = data.SrcSchema[srcTableName].ColNames.map(
       (name: string, i: number) => {
         let spColName = data.ToSpanner[srcTableName]?.Cols[name]
@@ -281,6 +282,8 @@ export class ConversionService {
               ? data.SpSchema[spTableName].ColDefs[spColName].NotNull
               : false,
           srcIsNotNull: data.SrcSchema[srcTableName].ColDefs[name].NotNull,
+          spColMaxLength: spannerColDef?.T.Len,
+          srcColMaxLength: data.SrcSchema[srcTableName].ColDefs[name].Type.Mods != null ? data.SrcSchema[srcTableName].ColDefs[name].Type.Mods[0]:''
         }
       }
     )
@@ -306,6 +309,8 @@ export class ConversionService {
                 ? data.SpSchema[spTableName].ColDefs[name].NotNull
                 : false,
             srcIsNotNull: false,
+            srcColMaxLength: '',
+            spColMaxLength: spannerColDef?.T.Len
           })
         }
       })

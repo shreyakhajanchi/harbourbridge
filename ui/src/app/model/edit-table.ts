@@ -9,6 +9,8 @@ export default interface IColumnTabData {
   srcIsPk: boolean
   spIsNotNull: boolean
   srcIsNotNull: boolean
+  srcColMaxLength: Number | string | undefined
+  spColMaxLength: Number | string | undefined
 }
 
 export interface IIndexData {

@@ -66,9 +66,9 @@ export class ObjectDetailComponent implements OnInit {
     })
   }
 
-  srcDisplayedColumns = ['srcOrder', 'srcColName', 'srcDataType', 'srcIsPk', 'srcIsNotNull']
+  srcDisplayedColumns = ['srcOrder', 'srcColName', 'srcDataType', 'srcColMaxLength','srcIsPk', 'srcIsNotNull']
 
-  spDisplayedColumns = ['spColName', 'spDataType', 'spIsPk', 'spIsNotNull', 'dropButton']
+  spDisplayedColumns = ['spColName', 'spDataType','spColMaxLength', 'spIsPk', 'spIsNotNull', 'dropButton']
   displayedFkColumns = [
     'srcName',
     'srcColumns',
@@ -196,6 +196,7 @@ export class ObjectDetailComponent implements OnInit {
             srcDataType: new FormControl(row.srcDataType),
             srcIsPk: new FormControl(row.srcIsPk),
             srcIsNotNull: new FormControl(row.srcIsNotNull),
+            srcColMaxLength: new FormControl(row.srcColMaxLength),
             spOrder: new FormControl(row.srcOrder),
             spColName: new FormControl(row.spColName, [
               Validators.required,
@@ -204,6 +205,7 @@ export class ObjectDetailComponent implements OnInit {
             spDataType: new FormControl(row.spDataType),
             spIsPk: new FormControl(row.spIsPk),
             spIsNotNull: new FormControl(row.spIsNotNull),
+            spColMaxLength: new FormControl(row.spColMaxLength),
           })
         )
       }
@@ -223,11 +225,13 @@ export class ObjectDetailComponent implements OnInit {
             srcDataType: new FormControl(col.srcDataType),
             srcIsPk: new FormControl(col.srcIsPk),
             srcIsNotNull: new FormControl(col.srcIsNotNull),
+            srcColMaxLength: new FormControl(col.srcColMaxLength),
             spOrder: new FormControl(col.spOrder),
             spColName: new FormControl(col.spColName),
             spDataType: new FormControl(col.spDataType),
             spIsPk: new FormControl(col.spIsPk),
             spIsNotNull: new FormControl(col.spIsNotNull),
+            spColMaxLength: new FormControl(col.spColMaxLength),
           })
         )
       } else {
@@ -347,6 +351,7 @@ export class ObjectDetailComponent implements OnInit {
     this.localTableData[index].spOrder = -1
     this.localTableData[index].spIsPk = this.droppedColumns[addedRowIndex].spIsPk
     this.localTableData[index].spIsNotNull = this.droppedColumns[addedRowIndex].spIsNotNull
+    this.localTableData[index].spColMaxLength = this.droppedColumns[addedRowIndex].spColMaxLength
     let ind = this.droppedColumns
       .map((col: IColumnTabData) => col.spColName)
       .indexOf(this.addedColumnName)
@@ -423,6 +428,7 @@ export class ObjectDetailComponent implements OnInit {
         col.spIsNotNull = false
         col.spIsPk = false
         col.spOrder = ''
+        col.spColMaxLength = ''
       }
     })
     this.setSpTableRows()

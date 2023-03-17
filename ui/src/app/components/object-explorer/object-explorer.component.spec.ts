@@ -47,7 +47,7 @@ xdescribe('ObjectExplorerComponent', () => {
   })
 
   it('should render table filtered by search box value (search)', () => {
-    component.filterSpannerTable('tab1')
+    component.filterSpannerTable()
     expect(fixture.nativeElement.querySelectorAll('mat-tree-node').length).toEqual(1)
   })
 })

@@ -8,7 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { ObjectExplorerNodeType } from 'src/app/app.constants'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
-fdescribe('SummaryComponent', () => {
+describe('SummaryComponent', () => {
   let component: SummaryComponent
   let fixture: ComponentFixture<SummaryComponent>
 
@@ -34,6 +34,9 @@ fdescribe('SummaryComponent', () => {
       pos: -1,
       status: 'EXCELLENT',
       type: ObjectExplorerNodeType.Table,
+      isDeleted: false,
+      id: 'id1',
+      parentId: 'id2',
     }
     component.summaryRows = [
       {

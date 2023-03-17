@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ObjectExplorerNodeType } from 'src/app/app.constants'
 
-fdescribe('ObjectDetailComponent', () => {
+describe('ObjectDetailComponent', () => {
   let component: ObjectDetailComponent
   let fixture: ComponentFixture<ObjectDetailComponent>
   let rowData: IColumnTabData[]
@@ -72,6 +72,7 @@ fdescribe('ObjectDetailComponent', () => {
         srcReferTable: 'def',
         spReferColumns: ['def_if'],
         srcReferColumns: ['def_if'],
+        Id: 'id1'
       },
     ]
     component.ddlStmts = 'some ddl statment'

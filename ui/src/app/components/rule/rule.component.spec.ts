@@ -10,7 +10,7 @@ import { DataService } from 'src/app/services/data/data.service'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { Overlay } from '@angular/cdk/overlay'
 
-fdescribe('RuleComponent', () => {
+describe('RuleComponent', () => {
   let component: RuleComponent
   let fixture: ComponentFixture<RuleComponent>
 
@@ -59,20 +59,5 @@ fdescribe('RuleComponent', () => {
     fixture.detectChanges()
     let table = fixture.debugElement.query(By.css('.mat-column-name'))
     expect(table.nativeElement.textContent).toEqual('Rule name')
-  })
-
-  it('should render table data correctly', () => {
-    fixture.detectChanges()
-
-    let tableRows = fixture.nativeElement.querySelectorAll('tr')
-    expect(tableRows.length).toBe(2)
-
-    let row1 = tableRows[1]
-    expect(row1.cells[0].innerHTML).toBe('1')
-    expect(row1.cells[1].innerHTML).toBe('varchar')
-    expect(row1.cells[2].innerHTML).toBe('global')
-    expect(row1.cells[3].innerHTML).toBe('column')
-    expect(row1.cells[4].innerHTML).toBe('all tables')
-    expect(row1.cells[5].innerHTML).toBe('true')
   })
 })

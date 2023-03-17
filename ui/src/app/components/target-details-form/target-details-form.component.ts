@@ -36,7 +36,6 @@ export class TargetDetailsFormComponent implements OnInit {
   updateTargetDetails() {
     let formValue = this.targetDetailsForm.value
     localStorage.setItem(TargetDetails.TargetDB, formValue.targetDb)
-    localStorage.setItem(TargetDetails.Dialect, formValue.dialect)
     localStorage.setItem(MigrationDetails.IsTargetDetailSet, "true")
     this.dialogRef.close()
   }

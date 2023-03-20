@@ -241,6 +241,7 @@ export class ConversionService {
   getColumnMapping(id: string, data: IConv): IColumnTabData[] {
     let srcTableName = this.getSourceTableNameFromId(id, data)
     let spTableName = this.getSpannerTableNameFromId(id, data)
+    const spColMax = 9223372036854776000
 
     let srcTableIds = Object.keys(data.SrcSchema[srcTableName].ColDefs).map(
       (name: string) => data.SrcSchema[srcTableName].ColDefs[name].Id
@@ -282,8 +283,8 @@ export class ConversionService {
               ? data.SpSchema[spTableName].ColDefs[spColName].NotNull
               : false,
           srcIsNotNull: data.SrcSchema[srcTableName].ColDefs[name].NotNull,
-          spColMaxLength: spannerColDef?.T.Len,
-          srcColMaxLength: data.SrcSchema[srcTableName].ColDefs[name].Type.Mods != null ? data.SrcSchema[srcTableName].ColDefs[name].Type.Mods[0]:''
+          spColMaxLength: spannerColDef?.T.Len != 0 ? (spannerColDef?.T.Len != spColMax ? spannerColDef?.T.Len: 'MAX') : '',
+          srcColMaxLength: data.SrcSchema[srcTableName].ColDefs[name].Type.Mods != null ? data.SrcSchema[srcTableName].ColDefs[name].Type.Mods[0] : ''
         }
       }
     )

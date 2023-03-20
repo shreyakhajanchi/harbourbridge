@@ -311,7 +311,9 @@
                     [matTooltipDisabled]="!element.get('spColMaxLength')?.hasError('pattern')"
                   />
                 </div>
-                <p *ngIf="!isEditMode">{{ element.get('spColMaxLength').value }}</p>
+                <p *ngIf="!isEditMode">
+                  {{ element.get('spColMaxLength').value }}
+                </p>
               </td>
             </ng-container>
 

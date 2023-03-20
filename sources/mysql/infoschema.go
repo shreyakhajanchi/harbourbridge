@@ -360,15 +360,12 @@ func (isi InfoSchemaImpl) StartStreamingMigration(ctx context.Context, client *s
 }
 
 func toType(dataType string, columnType string, charLen sql.NullInt64, numericPrecision, numericScale sql.NullInt64) schema.Type {
+	fmt.Println(dataType, " ", columnType, " ", charLen, " ", numericPrecision, " ", numericScale)
 	switch {
 	case dataType == "set":
 		return schema.Type{Name: dataType, ArrayBounds: []int64{-1}}
 	case charLen.Valid:
 		return schema.Type{Name: dataType, Mods: []int64{charLen.Int64}}
-	case dataType == "decimal" && numericPrecision.Valid && numericScale.Valid && numericScale.Int64 != 0:
-		return schema.Type{Name: dataType, Mods: []int64{numericPrecision.Int64, numericScale.Int64}}
-	case dataType == "decimal" && numericPrecision.Valid:
-		return schema.Type{Name: dataType, Mods: []int64{numericPrecision.Int64}}
 	// We only want to parse the length for tinyints when it is present, in the form tinyint(12). columnType can also be just 'tinyint',
 	// in which case we skip this parsing.
 	case dataType == "tinyint" && len(columnType) > len("tinyint"):
@@ -378,6 +375,10 @@ func toType(dataType string, columnType string, charLen sql.NullInt64, numericPr
 			return schema.Type{Name: dataType}
 		}
 		return schema.Type{Name: dataType, Mods: []int64{length}}
+	case numericPrecision.Valid && numericScale.Valid && numericScale.Int64 != 0:
+		return schema.Type{Name: dataType, Mods: []int64{numericPrecision.Int64, numericScale.Int64}}
+	case numericPrecision.Valid:
+		return schema.Type{Name: dataType, Mods: []int64{numericPrecision.Int64}}
 	default:
 		return schema.Type{Name: dataType}
 	}

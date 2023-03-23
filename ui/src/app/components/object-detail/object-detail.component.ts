@@ -66,9 +66,9 @@ export class ObjectDetailComponent implements OnInit {
     })
   }
 
-  srcDisplayedColumns = ['srcOrder', 'srcColName', 'srcDataType', 'srcColMaxLength','srcIsPk', 'srcIsNotNull']
+  srcDisplayedColumns = ['srcOrder', 'srcColName', 'srcDataType', 'srcColMaxLength', 'srcIsPk', 'srcIsNotNull']
 
-  spDisplayedColumns = ['spColName', 'spDataType','spColMaxLength', 'spIsPk', 'spIsNotNull', 'dropButton']
+  spDisplayedColumns = ['spColName', 'spDataType', 'spColMaxLength', 'spIsPk', 'spIsNotNull', 'dropButton']
   displayedFkColumns = [
     'srcName',
     'srcColumns',
@@ -205,7 +205,8 @@ export class ObjectDetailComponent implements OnInit {
             spDataType: new FormControl(row.spDataType),
             spIsPk: new FormControl(row.spIsPk),
             spIsNotNull: new FormControl(row.spIsNotNull),
-            spColMaxLength: new FormControl(row.spColMaxLength),
+            spColMaxLength: new FormControl(row.spColMaxLength, [
+              Validators.required,]),
           })
         )
       }
@@ -293,12 +294,14 @@ export class ObjectDetailComponent implements OnInit {
               ? this.tableData[j].srcColName
               : this.tableData[j].spColName
           let standardDataType = pgSQLToStandardTypeTypemap.get(col.spDataType)
+          let colMaxLength = (typeof (col.spColMaxLength) === 'number') ? col.spColMaxLength.toString() : col.spColMaxLength
           updateData.UpdateCols[columnName] = {
             Add: this.tableData[j].spColName == '',
             Rename: oldRow.spColName !== col.spColName ? col.spColName : '',
             NotNull: col.spIsNotNull ? 'ADDED' : 'REMOVED',
             Removed: false,
-            ToType: (this.conv.SpDialect === Dialect.PostgreSQLDialect) ? (standardDataType === undefined ? col.spDataType: standardDataType) : col.spDataType,
+            ToType: (this.conv.SpDialect === Dialect.PostgreSQLDialect) ? (standardDataType === undefined ? col.spDataType : standardDataType) : col.spDataType,
+            MaxColLength: colMaxLength
           }
           break
         }
@@ -312,6 +315,7 @@ export class ObjectDetailComponent implements OnInit {
         NotNull: '',
         Removed: true,
         ToType: '',
+        MaxColLength: '',
       }
     })
 

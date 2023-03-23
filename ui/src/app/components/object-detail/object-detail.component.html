@@ -308,7 +308,6 @@
                     type="text"
                     [formControl]="element.get('spColMaxLength')"
                     matTooltip="Specify the length in numeric or use MAX"
-                    [matTooltipDisabled]="!element.get('spColMaxLength')?.hasError('pattern')"
                   />
                 </div>
                 <p *ngIf="!isEditMode">

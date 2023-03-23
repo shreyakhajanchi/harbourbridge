@@ -19,8 +19,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
+	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
 	"github.com/cloudspannerecosystem/harbourbridge/webv2/session"
 	utilities "github.com/cloudspannerecosystem/harbourbridge/webv2/utilities"
 )
@@ -126,6 +129,18 @@ func ReviewTableSchema(w http.ResponseWriter, r *http.Request) {
 		if v.NotNull != "" {
 			UpdateNotNull(v.NotNull, table, colName, conv)
 		}
+
+		if v.MaxColLength != "" {
+			sp := conv.SpSchema[table]
+			spColDef := sp.ColDefs[colName]
+			if strings.ToLower(v.MaxColLength) == "max" {
+				spColDef.T.Len = ddl.MaxLength
+			} else {
+				spColDef.T.Len, _ = strconv.ParseInt(v.MaxColLength, 10, 64)
+			}
+			sp.ColDefs[colName] = spColDef
+		}
+
 	}
 
 	ddl := GetSpannerTableDDL(conv.SpSchema[table], conv.SpDialect)

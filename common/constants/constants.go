@@ -69,4 +69,5 @@ const (
 	// Rule types
 	GlobalDataTypeChange = "global_datatype_change"
 	AddIndex             = "add_index"
+	EditColumnMaxLength  = "edit_column_max_length"
 )

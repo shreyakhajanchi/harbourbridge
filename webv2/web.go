@@ -673,6 +673,19 @@ func applyRule(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		rule.Data = addedIndex
+	} else if rule.Type == constants.EditColumnMaxLength {
+		d, err := json.Marshal(rule.Data)
+		if err != nil {
+			http.Error(w, "Invalid rule data", http.StatusInternalServerError)
+			return
+		}
+		spColMaxLength := map[string]string{}
+		err = json.Unmarshal(d, &spColMaxLength)
+		if err != nil {
+			http.Error(w, "Invalid rule data", http.StatusInternalServerError)
+			return
+		}
+		setSpColMaxLength(spColMaxLength, rule.AssociatedObjects)
 	} else {
 		http.Error(w, "Invalid rule type", http.StatusInternalServerError)
 		return
@@ -781,6 +794,26 @@ func setGlobalDataType(typeMap map[string]string) {
 			}
 		}
 	}
+}
+
+func setSpColMaxLength(spColMaxLength map[string]string, tableName string) {
+	/*sessionState := session.GetSessionState()
+	if tableName == "All tables" {
+
+	} else {
+		for _, colDef := range sessionState.Conv.SpSchema[tableName].ColDefs {
+			if _, found := spColMaxLength[colDef.T.Name]; found {
+
+				spColDef := colDef
+				if strings.ToLower(v.MaxColLength) == "max" {
+					spColDef.T.Len = ddl.MaxLength
+				} else {
+					spColDef.T.Len, _ = strconv.ParseInt(v.MaxColLength, 10, 64)
+				}
+				sp.ColDefs[colName] = spColDef
+			}
+		}
+	}*/
 }
 
 // revertGlobalDataType revert back the spanner type to default

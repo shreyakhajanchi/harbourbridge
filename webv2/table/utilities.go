@@ -15,6 +15,8 @@
 package table
 
 import (
+	"fmt"
+
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
 	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
 	"github.com/cloudspannerecosystem/harbourbridge/webv2/session"
@@ -191,9 +193,25 @@ func updateInterleaveTableSchema(conv *internal.Conv, interleaveTableSchema []In
 			}
 			if col.Type == "" {
 				interleaveTableSchema[k].InterleaveColumnChanges[ind].Type = conv.SpSchema[table].ColDefs[col.UpdateColumnName].T.Name
+				if conv.SpSchema[table].ColDefs[col.UpdateColumnName].T.Len != 0 {
+					length := conv.SpSchema[table].ColDefs[col.UpdateColumnName].T.Len
+					if length == ddl.MaxLength {
+						interleaveTableSchema[k].InterleaveColumnChanges[ind].Type += "(MAX)"
+					} else {
+						interleaveTableSchema[k].InterleaveColumnChanges[ind].Type += fmt.Sprintf("(%v)", length)
+					}
+				}
 			}
 			if col.UpdateType == "" {
 				interleaveTableSchema[k].InterleaveColumnChanges[ind].UpdateType = conv.SpSchema[table].ColDefs[col.UpdateColumnName].T.Name
+				if conv.SpSchema[table].ColDefs[col.UpdateColumnName].T.Len != 0 {
+					length := conv.SpSchema[table].ColDefs[col.UpdateColumnName].T.Len
+					if length == ddl.MaxLength {
+						interleaveTableSchema[k].InterleaveColumnChanges[ind].UpdateType += "(MAX)"
+					} else {
+						interleaveTableSchema[k].InterleaveColumnChanges[ind].UpdateType += fmt.Sprintf("(%v)", length)
+					}
+				}
 			}
 		}
 	}

@@ -139,6 +139,10 @@ func ReviewTableSchema(w http.ResponseWriter, r *http.Request) {
 				spColDef.T.Len, _ = strconv.ParseInt(v.MaxColLength, 10, 64)
 			}
 			sp.ColDefs[colName] = spColDef
+			interleaveTableSchema, err = ReviewColumnType(v.ToType, table, colName, conv, interleaveTableSchema, w)
+			if err != nil {
+				return
+			}
 		}
 
 	}

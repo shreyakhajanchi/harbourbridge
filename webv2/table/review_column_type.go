@@ -15,9 +15,11 @@
 package table
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
+	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
 	utilities "github.com/cloudspannerecosystem/harbourbridge/webv2/utilities"
 )
 
@@ -48,7 +50,7 @@ func ReviewColumnType(newType, table, colName string, conv *internal.Conv, inter
 		}
 	}
 
-	// review update of column type for child talbe.
+	// review update of column type for child table.
 	isParent, childTableName := IsParent(table)
 	if isParent {
 		columnId := conv.SpSchema[childTableName].ColDefs[colName].Id
@@ -59,6 +61,7 @@ func ReviewColumnType(newType, table, colName string, conv *internal.Conv, inter
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return interleaveTableSchema, err
 		}
+		previousType, newType = populateColumnSize(previousType, newType, int(conv.SpSchema[table].ColDefs[colName].T.Len))
 		interleaveTableSchema = updateTypeOfInterleaveTableSchema(interleaveTableSchema, childTableName, columnId, colName, previousType, newType)
 	}
 
@@ -73,10 +76,11 @@ func ReviewColumnType(newType, table, colName string, conv *internal.Conv, inter
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return interleaveTableSchema, err
 		}
+		previousType, newType = populateColumnSize(previousType, newType, int(conv.SpSchema[table].ColDefs[colName].T.Len))
 		interleaveTableSchema = updateTypeOfInterleaveTableSchema(interleaveTableSchema, parentTableName, columnId, colName, previousType, newType)
 	}
 
-	// review update of column type for curren table.
+	// review update of column type for current table.
 	columnId := conv.SpSchema[table].ColDefs[colName].Id
 	previousType := conv.SpSchema[table].ColDefs[colName].T.Name
 	err = reviewColumnTypeChangeTableSchema(conv, table, colName, newType)
@@ -86,10 +90,27 @@ func ReviewColumnType(newType, table, colName string, conv *internal.Conv, inter
 	}
 
 	if childTableName != "" || parentTableName != "" {
+		previousType, newType = populateColumnSize(previousType, newType, int(conv.SpSchema[table].ColDefs[colName].T.Len))
 		interleaveTableSchema = updateTypeOfInterleaveTableSchema(interleaveTableSchema, table, columnId, colName, previousType, newType)
 	}
 
 	return interleaveTableSchema, nil
+}
+
+func ReviewColumnSize() {
+
+}
+
+func populateColumnSize(previousType, newType string, length int) (string, string) {
+	if length == ddl.MaxLength {
+		previousType += "(MAX)"
+	} else if length != 0 {
+		previousType += fmt.Sprintf("(%v)", length)
+	}
+	if newType == ddl.String || newType == ddl.Bytes {
+		newType += "(MAX)"
+	}
+	return previousType, newType
 }
 
 // reviewColumnTypeChangeTableSchema review update of column type to given newType.

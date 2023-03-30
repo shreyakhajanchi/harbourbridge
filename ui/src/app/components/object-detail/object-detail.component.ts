@@ -189,25 +189,39 @@ export class ObjectDetailComponent implements OnInit {
     this.spRowArray = new FormArray([])
     this.localTableData.forEach((row) => {
       if (row.spOrder) {
+        let fb = new FormGroup({
+          srcOrder: new FormControl(row.srcOrder),
+          srcColName: new FormControl(row.srcColName),
+          srcDataType: new FormControl(row.srcDataType),
+          srcIsPk: new FormControl(row.srcIsPk),
+          srcIsNotNull: new FormControl(row.srcIsNotNull),
+          srcColMaxLength: new FormControl(row.srcColMaxLength),
+          spOrder: new FormControl(row.srcOrder),
+          spColName: new FormControl(row.spColName, [
+            Validators.required,
+            Validators.pattern('^[a-zA-Z]([a-zA-Z0-9/_]*[a-zA-Z0-9])?'),
+          ]),
+          spDataType: new FormControl(row.spDataType),
+          spIsPk: new FormControl(row.spIsPk),
+          spIsNotNull: new FormControl(row.spIsNotNull),
+          spColMaxLength: new FormControl(row.spColMaxLength, [
+            Validators.required]),
+        })
+        if (row.spDataType === 'STRING' || row.spDataType === 'BYTES') {
+          console.log('hii')
+          fb.get('spColMaxLength')?.setValidators([Validators.required, Validators.pattern('([1-9][0-9]*|MAX)')])
+          if (row.spColMaxLength === undefined) {
+            console.log('hi')
+            fb.get('spColMaxLength')?.setValue('MAX')
+          }
+          
+        } else {
+          fb.controls['spColMaxLength'].clearValidators()
+        }
+        fb.controls['spColMaxLength'].updateValueAndValidity()
+        
         this.spRowArray.push(
-          new FormGroup({
-            srcOrder: new FormControl(row.srcOrder),
-            srcColName: new FormControl(row.srcColName),
-            srcDataType: new FormControl(row.srcDataType),
-            srcIsPk: new FormControl(row.srcIsPk),
-            srcIsNotNull: new FormControl(row.srcIsNotNull),
-            srcColMaxLength: new FormControl(row.srcColMaxLength),
-            spOrder: new FormControl(row.srcOrder),
-            spColName: new FormControl(row.spColName, [
-              Validators.required,
-              Validators.pattern('^[a-zA-Z]([a-zA-Z0-9/_]*[a-zA-Z0-9])?'),
-            ]),
-            spDataType: new FormControl(row.spDataType),
-            spIsPk: new FormControl(row.spIsPk),
-            spIsNotNull: new FormControl(row.spIsNotNull),
-            spColMaxLength: new FormControl(row.spColMaxLength, [
-              Validators.required,]),
-          })
+          fb
         )
       }
     })
@@ -243,11 +257,13 @@ export class ObjectDetailComponent implements OnInit {
             srcDataType: new FormControl(col.srcDataType),
             srcIsPk: new FormControl(col.srcIsPk),
             srcIsNotNull: new FormControl(col.srcIsNotNull),
+            srcColMaxLength: new FormControl(col.srcColMaxLength),
             spOrder: new FormControl(col.srcOrder),
             spColName: new FormControl(col.srcColName),
             spDataType: new FormControl(this.typeMap[col.srcDataType][0].T),
             spIsPk: new FormControl(col.srcIsPk),
             spIsNotNull: new FormControl(col.srcIsNotNull),
+            spColMaxLength: new FormControl(col.spColMaxLength),
           })
         )
       }

@@ -7,7 +7,7 @@ import { InfodialogComponent } from '../infodialog/infodialog.component'
 import IColumnTabData, { IIndexData } from '../../model/edit-table'
 import { SnackbarService } from 'src/app/services/snackbar/snackbar.service'
 import IFkTabData from 'src/app/model/fk-tab-data'
-import { Dialect, ObjectDetailNodeType, ObjectExplorerNodeType, StorageKeys } from 'src/app/app.constants'
+import { Column, Dialect, ObjectDetailNodeType, ObjectExplorerNodeType, StorageKeys } from 'src/app/app.constants'
 import FlatNode from 'src/app/model/schema-object-node'
 import { Subscription, take } from 'rxjs'
 import { MatTabChangeEvent } from '@angular/material/tabs/tab-group'
@@ -122,6 +122,7 @@ export class ObjectDetailComponent implements OnInit {
   currentTabIndex: number = 0
   addedColumnName: string = ''
   droppedColumns: IColumnTabData[] = []
+  addColumns: string[] = []
   pkColumnNames: string[] = []
   indexColumnNames: string[] = []
   addColumnForm = new FormGroup({
@@ -155,6 +156,7 @@ export class ObjectDetailComponent implements OnInit {
     this.srcRowArray = new FormArray([])
     this.spRowArray = new FormArray([])
     this.droppedColumns = []
+    this.addColumns = []
     this.pkColumnNames = []
     this.interleaveParentName = this.getInterleaveParentFromConv()
 
@@ -257,11 +259,13 @@ export class ObjectDetailComponent implements OnInit {
   }
 
   setColumnsToAdd() {
+    this.addColumns.push(Column.CreateNewColumn)
     this.localTableData.forEach((col) => {
       if (!col.spColName) {
         this.srcRowArray.value.forEach((element: IColumnTabData) => {
           if (col.srcColName == element.srcColName) {
             this.droppedColumns.push(element)
+            this.addColumns.push(element.srcColName)
           }
         })
       }
@@ -339,23 +343,28 @@ export class ObjectDetailComponent implements OnInit {
   }
 
   addColumn() {
-    let index = this.tableData.map((item) => item.srcColName).indexOf(this.addedColumnName)
+    if (this.addedColumnName != Column.CreateNewColumn) {
+      let index = this.tableData.map((item) => item.srcColName).indexOf(this.addedColumnName)
 
-    let addedRowIndex = this.droppedColumns
-      .map((item) => item.srcColName)
-      .indexOf(this.addedColumnName)
-    this.localTableData[index].spColName = this.droppedColumns[addedRowIndex].spColName
-    this.localTableData[index].spDataType = this.droppedColumns[addedRowIndex].spDataType
-    this.localTableData[index].spOrder = -1
-    this.localTableData[index].spIsPk = this.droppedColumns[addedRowIndex].spIsPk
-    this.localTableData[index].spIsNotNull = this.droppedColumns[addedRowIndex].spIsNotNull
-    let ind = this.droppedColumns
-      .map((col: IColumnTabData) => col.spColName)
-      .indexOf(this.addedColumnName)
-    if (ind > -1) {
-      this.droppedColumns.splice(ind, 1)
+      let addedRowIndex = this.droppedColumns
+        .map((item) => item.srcColName)
+        .indexOf(this.addedColumnName)
+      this.localTableData[index].spColName = this.droppedColumns[addedRowIndex].spColName
+      this.localTableData[index].spDataType = this.droppedColumns[addedRowIndex].spDataType
+      this.localTableData[index].spOrder = -1
+      this.localTableData[index].spIsPk = this.droppedColumns[addedRowIndex].spIsPk
+      this.localTableData[index].spIsNotNull = this.droppedColumns[addedRowIndex].spIsNotNull
+      let ind = this.droppedColumns
+        .map((col: IColumnTabData) => col.spColName)
+        .indexOf(this.addedColumnName)
+      if (ind > -1) {
+        this.droppedColumns.splice(ind, 1)
+      }
+      this.setSpTableRows()
+    } else {
+      console.log("xyz")
     }
-    this.setSpTableRows()
+    
   }
 
   dropColumn(element: any) {

@@ -291,7 +291,7 @@ export class ObjectDetailComponent implements OnInit {
     })
     this.spRowArray.value.forEach((col: IColumnTabData, i: number) => {
       for (let j = 0; j < this.tableData.length; j++) {
-        if (col.srcColName == this.tableData[j].srcColName) {
+        if (col.srcId == this.tableData[j].srcId && col.srcId != '') {
           let oldRow = this.tableData[j]
           let standardDataType = pgSQLToStandardTypeTypemap.get(col.spDataType)
           updateData.UpdateCols[this.tableData[j].srcId] = {
@@ -299,11 +299,12 @@ export class ObjectDetailComponent implements OnInit {
             Rename: oldRow.spColName !== col.spColName ? col.spColName : '',
             NotNull: col.spIsNotNull ? 'ADDED' : 'REMOVED',
             Removed: false,
-            ToType: (this.conv.SpDialect === Dialect.PostgreSQLDialect) ? (standardDataType === undefined ? col.spDataType: standardDataType) : col.spDataType,
+            ToType: (this.conv.SpDialect === Dialect.PostgreSQLDialect) ? (standardDataType === undefined ? col.spDataType : standardDataType) : col.spDataType,
           }
           break
         }
       }
+
     })
 
     this.droppedColumns.forEach((col: IColumnTabData) => {
@@ -359,12 +360,29 @@ export class ObjectDetailComponent implements OnInit {
         .indexOf(this.addedColumnName)
       if (ind > -1) {
         this.droppedColumns.splice(ind, 1)
+        this.addColumns.splice(this.addColumns.indexOf(this.addedColumnName), 1)
       }
       this.setSpTableRows()
     } else {
+      let newColumn: IColumnTabData = {
+        spColName: "xyz",
+        spDataType: "STRING",
+        spOrder: -1,
+        spIsPk: false,
+        spIsNotNull: false,
+        srcColName: "",
+        srcDataType: "",
+        srcOrder: -1,
+        srcIsPk: false,
+        srcIsNotNull: false,
+        spId: "new1",
+        srcId: ""
+      }
+      this.localTableData.push(newColumn)
+      this.setSpTableRows()
       console.log("xyz")
     }
-    
+
   }
 
   dropColumn(element: any) {
@@ -372,7 +390,7 @@ export class ObjectDetailComponent implements OnInit {
     let srcColId = element.get('srcId').value
     let spColId = element.get('spId').value
     let colId = srcColId != '' ? srcColId : spColId
-    let spColName = this.conv.SpSchema[this.currentObject!.id].ColDefs[colId].Name
+    let spColName = element.get('spColName').value
 
     let associatedIndexes = this.getAssociatedIndexs(colId)
     if (this.checkIfPkColumn(colId) || associatedIndexes.length != 0) {
@@ -397,11 +415,13 @@ export class ObjectDetailComponent implements OnInit {
       })
     } else {
       this.spRowArray.value.forEach((col: IColumnTabData, i: number) => {
-        if (col.srcColName === srcColName) {
+        if (col.spId === spColId && !col.spId.startsWith('new')) {
           this.droppedColumns.push(col)
+          this.addColumns.push(srcColName)
         }
       })
-      this.dropColumnFromUI(srcColName)
+      console.log("Reaching here")
+      this.dropColumnFromUI(spColId)
     }
   }
 
@@ -430,9 +450,9 @@ export class ObjectDetailComponent implements OnInit {
     return indexes
   }
 
-  dropColumnFromUI(colName: string) {
+  dropColumnFromUI(spColId: string) {
     this.localTableData.forEach((col: IColumnTabData, i: number) => {
-      if (colName == col.srcColName) {
+      if (col.spId== spColId) {
         col.spColName = col.spColName
         col.spDataType = ''
         col.spIsNotNull = false
@@ -682,8 +702,8 @@ export class ObjectDetailComponent implements OnInit {
               ({ ColId }) => ColId === row.spId
             ) !== 'undefined'
               ? this.conv.SpSchema[this.currentObject!.id].PrimaryKeys.find(
-                  ({ ColId }) => ColId === row.spId
-                )!.Desc
+                ({ ColId }) => ColId === row.spId
+              )!.Desc
               : false,
           Order: parseInt(row.spOrder as string),
         })
@@ -1201,10 +1221,10 @@ export class ObjectDetailComponent implements OnInit {
       srcColId: undefined,
       spColId: this.currentObject
         ? this.conversion.getColIdFromSpannerColName(
-            this.addIndexKeyForm.value.columnName,
-            this.currentObject.parentId,
-            this.conv
-          )
+          this.addIndexKeyForm.value.columnName,
+          this.currentObject.parentId,
+          this.conv
+        )
         : '',
     })
     this.setIndexRows()
@@ -1248,8 +1268,6 @@ export class ObjectDetailComponent implements OnInit {
       }
     })
   }
-
-  selectedColumnChange(tableId: string) {}
 
   tabChanged(tabChangeEvent: MatTabChangeEvent): void {
     this.currentTabIndex = tabChangeEvent.index

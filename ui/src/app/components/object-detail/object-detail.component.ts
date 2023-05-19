@@ -7,7 +7,7 @@ import { InfodialogComponent } from '../infodialog/infodialog.component'
 import IColumnTabData, { IIndexData } from '../../model/edit-table'
 import { SnackbarService } from 'src/app/services/snackbar/snackbar.service'
 import IFkTabData from 'src/app/model/fk-tab-data'
-import { Column, Dialect, ObjectDetailNodeType, ObjectExplorerNodeType, StorageKeys } from 'src/app/app.constants'
+import { Dialect, ObjectDetailNodeType, ObjectExplorerNodeType, StorageKeys } from 'src/app/app.constants'
 import FlatNode from 'src/app/model/schema-object-node'
 import { Subscription, take } from 'rxjs'
 import { MatTabChangeEvent } from '@angular/material/tabs/tab-group'
@@ -259,7 +259,6 @@ export class ObjectDetailComponent implements OnInit {
   }
 
   setColumnsToAdd() {
-    this.addColumns.push(Column.CreateNewColumn)
     this.localTableData.forEach((col) => {
       if (!col.spColName) {
         this.srcRowArray.value.forEach((element: IColumnTabData) => {
@@ -343,10 +342,12 @@ export class ObjectDetailComponent implements OnInit {
     this.addedColumnName = columnName
   }
 
-  addColumn() {
-    if (this.addedColumnName != Column.CreateNewColumn) {
-      let index = this.tableData.map((item) => item.srcColName).indexOf(this.addedColumnName)
+  addNewColumn() {
 
+  }
+
+  addColumn() {
+      let index = this.tableData.map((item) => item.srcColName).indexOf(this.addedColumnName)
       let addedRowIndex = this.droppedColumns
         .map((item) => item.srcColName)
         .indexOf(this.addedColumnName)
@@ -363,26 +364,6 @@ export class ObjectDetailComponent implements OnInit {
         this.addColumns.splice(this.addColumns.indexOf(this.addedColumnName), 1)
       }
       this.setSpTableRows()
-    } else {
-      let newColumn: IColumnTabData = {
-        spColName: "xyz",
-        spDataType: "STRING",
-        spOrder: -1,
-        spIsPk: false,
-        spIsNotNull: false,
-        srcColName: "",
-        srcDataType: "",
-        srcOrder: -1,
-        srcIsPk: false,
-        srcIsNotNull: false,
-        spId: "new1",
-        srcId: ""
-      }
-      this.localTableData.push(newColumn)
-      this.setSpTableRows()
-      console.log("xyz")
-    }
-
   }
 
   dropColumn(element: any) {

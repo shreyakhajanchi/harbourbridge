@@ -109,7 +109,3 @@ export const Dataflow = {
   HostProjectId: 'hostProjectId',
   IsDataflowConfigSet: 'isDataflowConfigSet',
 }
-
-export const Column = {
-  CreateNewColumn: 'Create New Column'
-}

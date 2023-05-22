@@ -32,9 +32,9 @@ export class AddNewColumnComponent implements OnInit {
     this.dialect = data.dialect
     this.tableId = data.tableId
     this.addNewColumnForm = this.formBuilder.group({
-      name: ['', Validators.required],
+      name: ['', Validators.required, Validators.minLength(1), Validators.maxLength(128), Validators.pattern('^[a-zA-Z][a-zA-Z0-9_]*$')],
       datatype: [],
-      length: [],
+      length: [Validators.pattern('^[0-9]+$')],
       isNullable: [],
     })
   }
@@ -47,10 +47,15 @@ export class AddNewColumnComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.dialect == Dialect.GoogleStandardSQLDialect) {
-      this.datatypes = ['STRING']
+      this.datatypes = ['BOOL','BYTES','DATE','FLOAT64','INT64','STRING', 'TIMESTAMP', 'NUMERIC', 'JSON']
     } else {
-      this.datatypes = ['VARCHAR']
+      this.datatypes = ['BOOL','BYTEA','DATE','FLOAT8','INT8','VARCHAR', 'TIMESTAMPTZ', 'NUMERIC', 'JSONB']
     }
+  }
+
+
+  changeValidator() {
+
   }
 
   addNewColumn() {

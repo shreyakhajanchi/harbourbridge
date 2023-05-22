@@ -22,6 +22,7 @@ import { ConversionService } from 'src/app/services/conversion/conversion.servic
 import { DropIndexOrTableDialogComponent } from '../drop-index-or-table-dialog/drop-index-or-table-dialog.component'
 import { SidenavService } from 'src/app/services/sidenav/sidenav.service'
 import { TableUpdatePubSubService } from 'src/app/services/table-update-pub-sub/table-update-pub-sub.service'
+import { AddNewColumnComponent } from '../add-new-column/add-new-column.component'
 
 @Component({
   selector: 'app-object-detail',
@@ -343,7 +344,16 @@ export class ObjectDetailComponent implements OnInit {
   }
 
   addNewColumn() {
-
+    console.log(this.currentObject?.id)
+    let dialogRef = this.dialog.open(AddNewColumnComponent, {
+      width: '30vw',
+      minWidth: '400px',
+      maxWidth: '500px',
+      data: {
+        dialect: this.conv.SpDialect,
+        tableId: this.currentObject?.id,
+      }
+    })
   }
 
   addColumn() {

@@ -61,6 +61,8 @@ func getRoutes() *mux.Router {
 	router.HandleFunc("/update/fks", updateForeignKeys).Methods("POST")
 	router.HandleFunc("/update/indexes", updateIndexes).Methods("POST")
 
+	router.HandleFunc("/AddColumn", table.AddNewColumn).Methods("POST")
+
 	// Session Management
 	router.HandleFunc("/IsOffline", session.IsOfflineSession).Methods("GET")
 	router.HandleFunc("/GetSessions", session.GetSessions).Methods("GET")

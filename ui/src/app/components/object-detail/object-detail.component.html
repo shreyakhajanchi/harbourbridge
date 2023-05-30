@@ -276,7 +276,7 @@
                   <mat-form-field
                     appearance="legacy"
                     class="w-100"
-                    *ngIf="isEditMode && element.get('spDataType').value !== ''"
+                    *ngIf="isEditMode && element.get('spDataType').value !== '' && element.get('srcId').value !== ''"
                   >
                     <mat-select
                       #matSelectspDataType
@@ -297,7 +297,7 @@
                       </mat-option>
                     </mat-select>
                   </mat-form-field>
-                  <p *ngIf="!isEditMode">{{ element.get('spDataType').value }}</p>
+                  <p *ngIf="!isEditMode || element.get('srcId').value === ''">{{ element.get('spDataType').value }}</p>
                 </div>
               </td>
             </ng-container>
@@ -376,7 +376,7 @@
 
         <div
           [formGroup]="addColumnForm"
-          *ngIf="isEditMode"
+          *ngIf="isEditMode && droppedSourceColumns.length != 0"
           class="add-column"
         >
           <mat-form-field appearance="outline" class="column-list">
@@ -388,8 +388,8 @@
               formControlName="columnName"
               required="true"
             >
-              <mat-option *ngFor="let column of addColumns" [value]="column">{{
-                column
+            <mat-option *ngFor="let column of droppedSourceColumns" [value]="column">{{
+              column
               }}</mat-option>
             </mat-select>
           </mat-form-field>

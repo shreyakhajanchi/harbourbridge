@@ -32,9 +32,9 @@ export class AddNewColumnComponent implements OnInit {
     this.dialect = data.dialect
     this.tableId = data.tableId
     this.addNewColumnForm = this.formBuilder.group({
-      name: ['', Validators.required, Validators.minLength(1), Validators.maxLength(128), Validators.pattern('^[a-zA-Z][a-zA-Z0-9_]*$')],
+      name: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(128), Validators.pattern('^[a-zA-Z][a-zA-Z0-9_]*$')]],
       datatype: [],
-      length: [Validators.pattern('^[0-9]+$')],
+      length: ['',Validators.pattern('^[0-9]+$')],
       isNullable: [],
     })
   }
@@ -55,7 +55,16 @@ export class AddNewColumnComponent implements OnInit {
 
 
   changeValidator() {
-
+    if (this.selectedDatatype === 'BYTES') {
+      this.addNewColumnForm.get('length')?.addValidators([Validators.required])
+      this.addNewColumnForm.controls['length'].updateValueAndValidity()
+    } else if(this.selectedDatatype === 'VARCHAR' || this.selectedDatatype === 'STRING') {
+      this.addNewColumnForm.get('length')?.addValidators([Validators.required])
+      this.addNewColumnForm.controls['length'].updateValueAndValidity()
+    } else {
+      this.addNewColumnForm.controls['length'].clearValidators()
+      this.addNewColumnForm.controls['length'].updateValueAndValidity()
+    }
   }
 
   addNewColumn() {

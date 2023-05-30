@@ -123,7 +123,7 @@ export class ObjectDetailComponent implements OnInit {
   currentTabIndex: number = 0
   addedColumnName: string = ''
   droppedColumns: IColumnTabData[] = []
-  addColumns: string[] = []
+  droppedSourceColumns: string[] = []
   pkColumnNames: string[] = []
   indexColumnNames: string[] = []
   addColumnForm = new FormGroup({
@@ -157,7 +157,6 @@ export class ObjectDetailComponent implements OnInit {
     this.srcRowArray = new FormArray([])
     this.spRowArray = new FormArray([])
     this.droppedColumns = []
-    this.addColumns = []
     this.pkColumnNames = []
     this.interleaveParentName = this.getInterleaveParentFromConv()
 
@@ -263,9 +262,9 @@ export class ObjectDetailComponent implements OnInit {
     this.localTableData.forEach((col) => {
       if (!col.spColName) {
         this.srcRowArray.value.forEach((element: IColumnTabData) => {
-          if (col.srcColName == element.srcColName) {
+          if (col.srcColName == element.srcColName && element.srcColName != '') {
             this.droppedColumns.push(element)
-            this.addColumns.push(element.srcColName)
+            this.droppedSourceColumns.push(element.srcColName)
           }
         })
       }
@@ -291,9 +290,9 @@ export class ObjectDetailComponent implements OnInit {
     })
     this.spRowArray.value.forEach((col: IColumnTabData, i: number) => {
       for (let j = 0; j < this.tableData.length; j++) {
-        if (col.srcId == this.tableData[j].srcId && col.srcId != '') {
-          let oldRow = this.tableData[j]
-          let standardDataType = pgSQLToStandardTypeTypemap.get(col.spDataType)
+        let oldRow = this.tableData[j]
+        let standardDataType = pgSQLToStandardTypeTypemap.get(col.spDataType)
+        if (col.srcId == this.tableData[j].srcId && this.tableData[j].srcId != '') {
           updateData.UpdateCols[this.tableData[j].srcId] = {
             Add: this.tableData[j].spId == '',
             Rename: oldRow.spColName !== col.spColName ? col.spColName : '',
@@ -303,12 +302,20 @@ export class ObjectDetailComponent implements OnInit {
           }
           break
         }
+        else if (col.spId == this.tableData[j].spId) {
+          updateData.UpdateCols[this.tableData[j].spId] = {
+            Add: this.tableData[j].spId == '',
+            Rename: oldRow.spColName !== col.spColName ? col.spColName : '',
+            NotNull: col.spIsNotNull ? 'ADDED' : 'REMOVED',
+            Removed: false,
+            ToType: (this.conv.SpDialect === Dialect.PostgreSQLDialect) ? (standardDataType === undefined ? col.spDataType : standardDataType) : col.spDataType,
+          }
+        }
       }
-
     })
 
     this.droppedColumns.forEach((col: IColumnTabData) => {
-      updateData.UpdateCols[col.srcId] = {
+      updateData.UpdateCols[col.spId] = {
         Add: false,
         Rename: '',
         NotNull: '',
@@ -344,8 +351,7 @@ export class ObjectDetailComponent implements OnInit {
   }
 
   addNewColumn() {
-    console.log(this.currentObject?.id)
-    let dialogRef = this.dialog.open(AddNewColumnComponent, {
+    this.dialog.open(AddNewColumnComponent, {
       width: '30vw',
       minWidth: '400px',
       maxWidth: '500px',
@@ -357,23 +363,25 @@ export class ObjectDetailComponent implements OnInit {
   }
 
   addColumn() {
-      let index = this.tableData.map((item) => item.srcColName).indexOf(this.addedColumnName)
-      let addedRowIndex = this.droppedColumns
-        .map((item) => item.srcColName)
-        .indexOf(this.addedColumnName)
-      this.localTableData[index].spColName = this.droppedColumns[addedRowIndex].spColName
-      this.localTableData[index].spDataType = this.droppedColumns[addedRowIndex].spDataType
-      this.localTableData[index].spOrder = -1
-      this.localTableData[index].spIsPk = this.droppedColumns[addedRowIndex].spIsPk
-      this.localTableData[index].spIsNotNull = this.droppedColumns[addedRowIndex].spIsNotNull
-      let ind = this.droppedColumns
-        .map((col: IColumnTabData) => col.spColName)
-        .indexOf(this.addedColumnName)
-      if (ind > -1) {
-        this.droppedColumns.splice(ind, 1)
-        this.addColumns.splice(this.addColumns.indexOf(this.addedColumnName), 1)
+    let index = this.tableData.map((item) => item.srcColName).indexOf(this.addedColumnName)
+    let addedRowIndex = this.droppedColumns
+      .map((item) => item.srcColName)
+      .indexOf(this.addedColumnName)
+    this.localTableData[index].spColName = this.droppedColumns[addedRowIndex].spColName
+    this.localTableData[index].spDataType = this.droppedColumns[addedRowIndex].spDataType
+    this.localTableData[index].spOrder = -1
+    this.localTableData[index].spIsPk = this.droppedColumns[addedRowIndex].spIsPk
+    this.localTableData[index].spIsNotNull = this.droppedColumns[addedRowIndex].spIsNotNull
+    let ind = this.droppedColumns
+      .map((col: IColumnTabData) => col.spColName)
+      .indexOf(this.addedColumnName)
+    if (ind > -1) {
+      this.droppedColumns.splice(ind, 1)
+      if (this.droppedSourceColumns.indexOf(this.addedColumnName) > -1) {
+        this.droppedSourceColumns.splice(this.droppedSourceColumns.indexOf(this.addedColumnName), 1)
       }
-      this.setSpTableRows()
+    }
+    this.setSpTableRows()
   }
 
   dropColumn(element: any) {
@@ -406,13 +414,14 @@ export class ObjectDetailComponent implements OnInit {
       })
     } else {
       this.spRowArray.value.forEach((col: IColumnTabData, i: number) => {
-        if (col.spId === spColId && !col.spId.startsWith('new')) {
+        if (col.spId === spColId) {
           this.droppedColumns.push(col)
-          this.addColumns.push(srcColName)
         }
       })
-      console.log("Reaching here")
       this.dropColumnFromUI(spColId)
+      if (srcColName !== '') {
+        this.droppedSourceColumns.push(srcColName)
+      }
     }
   }
 
@@ -443,8 +452,8 @@ export class ObjectDetailComponent implements OnInit {
 
   dropColumnFromUI(spColId: string) {
     this.localTableData.forEach((col: IColumnTabData, i: number) => {
-      if (col.spId== spColId) {
-        col.spColName = col.spColName
+      if (col.spId == spColId) {
+        col.spColName = ''
         col.spDataType = ''
         col.spIsNotNull = false
         col.spIsPk = false

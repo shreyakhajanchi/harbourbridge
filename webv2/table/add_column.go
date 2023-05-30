@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/cloudspannerecosystem/harbourbridge/internal"
 	"github.com/cloudspannerecosystem/harbourbridge/spanner/ddl"
@@ -69,7 +70,20 @@ func AddNewColumn(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Request Body parse error : %v", err), http.StatusBadRequest)
 		return
 	}
+
 	sessionState := session.GetSessionState()
+	for _, c := range sessionState.Conv.SpSchema[tableId].ColDefs {
+		if strings.EqualFold(c.Name, details.Name) {
+			http.Error(w, fmt.Sprintf("Multiple columns with similar name cannot exist for column : %v", details.Name), http.StatusBadRequest)
+			return
+		}
+	}
+	usedNames := internal.ComputeUsedNames(sessionState.Conv)
+	_, found := usedNames[strings.ToLower(details.Name)]
+	if found {
+		http.Error(w, fmt.Sprintf("Name '%v' is in used names, please use a different column name", details.Name), http.StatusBadRequest)
+		return
+	}
 	ct := sessionState.Conv.SpSchema[tableId]
 	columnId := internal.GenerateColumnId()
 	ct.ColIds = append(ct.ColIds, columnId)

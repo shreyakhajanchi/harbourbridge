@@ -1206,7 +1206,7 @@ func getReportFile(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(reportAbsPath))
 }
 
-// generates a downloadable structured report and send it as a JSON response  
+// generates a downloadable structured report and send it as a JSON response
 func getDStructuredReport(w http.ResponseWriter, r *http.Request) {
 	sessionState := session.GetSessionState()
 	structuredReport := reports.GenerateStructuredReport(sessionState.Driver, sessionState.DbName, sessionState.Conv, nil, true, true)
@@ -2475,17 +2475,23 @@ func checkPrimaryKeyPrefix(tableId string, refTableId string, fk ddl.Foreignkey,
 	childPks := sessionState.Conv.SpSchema[tableId].PrimaryKeys
 	parentPks := sessionState.Conv.SpSchema[refTableId].PrimaryKeys
 
-	parentIndex := utilities.GetPrimaryKeyIndexFromOrder(parentPks, 1)
-	if parentIndex == -1 {
-		return false
-	}
-	parentFirstOrderPkColId := parentPks[parentIndex].ColId
 	possibleInterleave := false
-	for _, colId := range fk.ReferColumnIds {
-		if parentFirstOrderPkColId == colId {
-			possibleInterleave = true
+	flag := false
+	for _, key := range parentPks {
+		flag = false
+		for _, colId := range fk.ReferColumnIds {
+			if key.ColId == colId {
+				flag = true
+			}
+		}
+		if !flag {
+			break
 		}
 	}
+	if flag {
+		possibleInterleave = true
+	}
+
 	if !possibleInterleave {
 		removeInterleaveSuggestions(fk.ColIds, tableId)
 		return false

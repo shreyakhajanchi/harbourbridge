@@ -27,6 +27,7 @@ export class ObjectExplorerComponent implements OnInit {
   srcSortOrder: string = ''
   spannerSortOrder: string = ''
   srcSearchText: string = ''
+  srcSearchTextChange: string = ''; 
   spannerSearchText: string = ''
   selectedTab: string = 'spanner'
   @Output() selectedDatabase = new EventEmitter<string>()
@@ -94,7 +95,9 @@ export class ObjectExplorerComponent implements OnInit {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    let newSpannerTree = changes?.['spannerTree']?.currentValue
+    if (this.srcSearchText === '' || this.srcSearchText !== this.srcSearchTextChange) {
+      console.log("hello")
+      let newSpannerTree = changes?.['spannerTree']?.currentValue
     let newSrcTree = changes?.['srcTree']?.currentValue
 
     if (newSrcTree) {
@@ -107,14 +110,53 @@ export class ObjectExplorerComponent implements OnInit {
       this.treeControl.expand(this.treeControl.dataNodes[0])
       this.treeControl.expand(this.treeControl.dataNodes[1])
     }
+    }
+    
   }
 
   filterSpannerTable() {
-    this.updateSpannerTable.emit({ text: this.spannerSearchText, order: this.spannerSortOrder })
+    this.srcSearchTextChange = this.srcSearchText;
+    this.filterSpanner(this.dataSource.data[0], this.spannerSearchText)
+    //this.updateSpannerTable.emit({ text: this.spannerSearchText, order: this.spannerSortOrder })
   }
 
   filterSrcTable() {
     this.updateSrcTable.emit({ text: this.srcSearchText, order: this.srcSortOrder })
+  }
+
+  filterSpanner(nodes: ISchemaObjectNode, filterText: string) {
+    const filteredNodes: ISchemaObjectNode[] = [];
+    if (nodes) {
+      if (nodes.children?.length) {
+        if (nodes?.children[0]?.children) {
+          nodes?.children[0]?.children.forEach((node) => {
+            const filteredNode: ISchemaObjectNode = { ...node }; // Create a shallow copy of the node
+            console.log("hi",node)
+      
+            // If the node name matches the filter text, add it to the filtered list
+            if (this.isTableNameNode(node.type) && node.name.toLowerCase().includes(filterText.toLowerCase())) {
+              filteredNodes.push(filteredNode);
+            }
+      
+            // If the node has children, recursively filter them and update the filtered node's children
+            /*if (node.type && node.children.length > 0) {
+              filteredNode.children = this.filterTreeNodes(node.children, filterText);
+              if (filteredNode.children.length > 0) {
+                filteredNodes.push(filteredNode);
+              }
+            }*/
+          });
+          if (this.dataSource.data[0].children?.length) {
+            if (this.dataSource.data[0].children[0]?.children) {
+          this.dataSource.data[0].children[0].children = filteredNodes
+          console.log(this.dataSource.data)
+            }
+          }
+        }
+      }
+    }
+    
+    console.log(filteredNodes)
   }
 
   srcTableSort() {
@@ -160,6 +202,13 @@ export class ObjectExplorerComponent implements OnInit {
 
   isIndexLikeNode(data: FlatNode): boolean {
     if (data.type == ObjectExplorerNodeType.Index || data.type == ObjectExplorerNodeType.Indexes) {
+      return true
+    }
+    return false
+  }
+
+  isTableNameNode(type: string): boolean {
+    if (type == ObjectExplorerNodeType.Table) {
       return true
     }
     return false

@@ -50,7 +50,17 @@
     </mat-form-field>
     <mat-icon class="configure" [matTooltip]="migrationModesHelpText.get(selectedMigrationMode)!">info</mat-icon>
     <br>
-    <div *ngIf="!(selectedMigrationMode === 'Schema')">
+    <mat-form-field appearance="outline">
+        <mat-label>Migration Type:</mat-label>
+        <mat-select [(ngModel)]="selectedMigrationType" (selectionChange)="refreshPrerequisites()">
+            <mat-option *ngFor="let type of migrationTypes" [value]="type.value">
+                {{type.name}}
+            </mat-option>
+        </mat-select>
+    </mat-form-field>
+    <mat-icon class="configure" [matTooltip]="migrationTypesHelpText.get(selectedMigrationType)!">info</mat-icon>
+    <br/>
+    <div *ngIf="!(selectedMigrationMode === 'Schema' || selectedMigrationType === 'lowdt')">
         <mat-form-field appearance="outline">
           <mat-label>Skip Foreign Key Creation:</mat-label>
           <mat-select [(ngModel)]="isForeignKeySkipped">
@@ -60,16 +70,7 @@
         </mat-select>
     </mat-form-field>
     </div>
-    <mat-form-field appearance="outline">
-        <mat-label>Migration Type:</mat-label>
-        <mat-select [(ngModel)]="selectedMigrationType" (selectionChange)="refreshPrerequisites()">
-            <mat-option *ngFor="let type of migrationTypes" [value]="type.value">
-                {{type.name}}
-            </mat-option>
-        </mat-select>
-    </mat-form-field>
-<mat-icon class="configure" [matTooltip]="migrationTypesHelpText.get(selectedMigrationType)!">info</mat-icon>
-    <br/>
+
     <div class="mat-card-class">
         <mat-card>
             <mat-card-title>Prerequisites</mat-card-title>
@@ -133,7 +134,7 @@
                     <span>Configure Spanner Database
                         <mat-icon class="configure" matTooltip="Configure the database in Spanner you want this migration to write to (up till now only GCP Project ID and Spanner Instance name have been configured.)">info</mat-icon></span>
                     <span><button mat-button class="configure"
-                            (click)="openTargetDetailsForm()" [disabled]="isMigrationInProgress">
+                            (click)="openTargetDetailsForm()" [disabled]="isMigrationInProgress || isLowDtMigrationRunning">
                             Configure
                             <mat-icon>edit</mat-icon>
                             <mat-icon *ngIf="isTargetDetailSet" class="success" matTooltip="Target details configured"

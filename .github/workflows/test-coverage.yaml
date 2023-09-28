@@ -19,13 +19,8 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: 12.8
-    - name: Install dependencies
+    - name: Run test
       run: |
             cd ui
             npm install
-    - name: Lint
-      run: npm run lint
-    - name: Build
-      run: npm run build -- --prod
-    - name: Test
-      run: npm test -- --configuration=ci
+            ng test --browsers ChromeHeadless

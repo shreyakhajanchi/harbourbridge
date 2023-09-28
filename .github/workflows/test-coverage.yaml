@@ -25,4 +25,4 @@ jobs:
     - name: Run test
       run: |
             cd ui
-            npm test --browsers=ChromeHeadless --watch=false
+            npm test -- --browsers=ChromeHeadless --watch=false

@@ -23,6 +23,4 @@ jobs:
             cd ui
             npm ci
     - name: Run test
-      run: |
-            cd ui
-            ng test --browsers=ChromeHeadless --watch=false
+      run: npm test --browsers=ChromeHeadless --watch=false

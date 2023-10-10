@@ -35,11 +35,11 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 14
-      - name: Install frontend test dependencies
+      - name: Install dependencies
         run: |
           cd ui
           npm ci
-      - name: Run UI unit tests
+      - name: Run test
         run: |
           cd ui
           npm test -- --browsers=ChromeHeadless --watch=false

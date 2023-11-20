@@ -150,7 +150,6 @@ jobs:
 
       - name: Cypress run
         uses: cypress-io/github-action@v6
-        with:
-          run: |
-            cd ui
-            npx cypress run
+        run: |
+          cd ui
+          npx cypress run

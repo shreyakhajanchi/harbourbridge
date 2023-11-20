@@ -148,8 +148,17 @@ jobs:
       - run: gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
       - run: gcloud spanner instances create test-instance --config=emulator-config --description="Test Instance" --nodes=1
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+
+      -  name: Install Dependencies
+        run: |
+          cd ui
+          npm ci
+
       - name: Cypress run
-        uses: cypress-io/github-action@v6
         run: |
           cd ui
           npx cypress run

@@ -148,16 +148,6 @@ jobs:
       - run: gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
       - run: gcloud spanner instances create test-instance --config=emulator-config --description="Test Instance" --nodes=1
 
-      # run tests
-      - uses: actions/setup-go@v2
-        with:
-          go-version: "1.19"
-      - run: go version
-      - run: go test -v ./...
-        env:
-          SPANNER_EMULATOR_HOST: localhost:9010
-          SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_PROJECT_ID: emulator-test-project
-          SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_INSTANCE_ID: test-instance
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:

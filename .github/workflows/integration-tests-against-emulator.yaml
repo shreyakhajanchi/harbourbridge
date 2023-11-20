@@ -154,7 +154,7 @@ jobs:
           node-version: '14'
 
       - name: Start Local Server
-        run: go run github.com/GoogleCloudPlatform/spanner-migration-tool web
+        run: go run github.com/GoogleCloudPlatform/spanner-migration-tool web &
 
       - name: Install Dependencies
         run: |

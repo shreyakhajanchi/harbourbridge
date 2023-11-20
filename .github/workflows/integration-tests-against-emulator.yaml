@@ -161,6 +161,9 @@ jobs:
           cd ui
           npm ci
 
+      - name: Wait for Local Server to Start
+        run: npx wait-on http://localhost:8080 -t 30000
+
       - name: Cypress run
         run: |
           cd ui

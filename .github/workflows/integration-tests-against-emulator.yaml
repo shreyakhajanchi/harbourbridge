@@ -168,3 +168,5 @@ jobs:
         run: |
           cd ui
           npx cypress run
+        env:
+          SPANNER_EMULATOR_HOST: localhost:9010

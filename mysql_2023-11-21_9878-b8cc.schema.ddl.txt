@@ -1,0 +1,47 @@
+CREATE TABLE `Albums` (
+	`SingerId` INT64 NOT NULL,
+	`AlbumId` INT64 NOT NULL,
+	`AlbumTitle` STRING(50),
+) PRIMARY KEY (`SingerId`, `AlbumId`);
+
+CREATE TABLE `Persons` (
+	`ID` INT64 NOT NULL,
+	`LastName` STRING(255) NOT NULL,
+	`FirstName` STRING(255),
+	`Age` INT64,
+) PRIMARY KEY (`ID`);
+
+CREATE TABLE `Singers` (
+	`SingerId` INT64 NOT NULL,
+	`FirstName` STRING(1024),
+	`LastName` STRING(1024),
+	`SingerInfo` STRING(100),
+) PRIMARY KEY (`SingerId`);
+
+CREATE TABLE `Songs` (
+	`SingerId` INT64 NOT NULL,
+	`AlbumId` INT64 NOT NULL,
+	`TrackId` INT64 NOT NULL,
+	`SongName` STRING(50),
+) PRIMARY KEY (`SingerId`, `AlbumId`, `TrackId`);
+
+CREATE TABLE `locations` (
+	`name` STRING(50),
+	`location` STRING(MAX),
+	`synth_id` STRING(50),
+) PRIMARY KEY (`synth_id`);
+
+CREATE TABLE `locations1` (
+	`name` STRING(50),
+	`location` STRING(MAX),
+	`synth_id` STRING(50),
+) PRIMARY KEY (`synth_id`);
+
+CREATE TABLE `t1` (
+	`jdoc` JSON,
+	`synth_id` STRING(50),
+) PRIMARY KEY (`synth_id`);
+
+ALTER TABLE `Albums` ADD CONSTRAINT `albums_ibfk_1` FOREIGN KEY (SingerId) REFERENCES `Singers` (SingerId);
+
+ALTER TABLE `Songs` ADD CONSTRAINT `songs_ibfk_1` FOREIGN KEY (AlbumId, SingerId) REFERENCES `Albums` (AlbumId, SingerId)

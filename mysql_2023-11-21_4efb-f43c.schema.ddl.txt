@@ -1,0 +1,54 @@
+CREATE TABLE Albums (
+	SingerId INT8 NOT NULL,
+	AlbumId INT8 NOT NULL,
+	AlbumTitle VARCHAR(50),
+	PRIMARY KEY (SingerId, AlbumId)
+);
+
+CREATE TABLE Persons (
+	ID INT8 NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255),
+	Age INT8,
+	PRIMARY KEY (ID)
+);
+
+CREATE TABLE Singers (
+	SingerId INT8 NOT NULL,
+	FirstName VARCHAR(1024),
+	LastName VARCHAR(1024),
+	SingerInfo VARCHAR(100),
+	PRIMARY KEY (SingerId)
+);
+
+CREATE TABLE Songs (
+	SingerId INT8 NOT NULL,
+	AlbumId INT8 NOT NULL,
+	TrackId INT8 NOT NULL,
+	SongName VARCHAR(50),
+	PRIMARY KEY (SingerId, AlbumId, TrackId)
+);
+
+CREATE TABLE locations (
+	name VARCHAR(50),
+	location VARCHAR(2621440),
+	synth_id VARCHAR(50),
+	PRIMARY KEY (synth_id)
+);
+
+CREATE TABLE locations1 (
+	name VARCHAR(50),
+	location VARCHAR(2621440),
+	synth_id VARCHAR(50),
+	PRIMARY KEY (synth_id)
+);
+
+CREATE TABLE t1 (
+	jdoc JSONB,
+	synth_id VARCHAR(50),
+	PRIMARY KEY (synth_id)
+);
+
+ALTER TABLE Albums ADD CONSTRAINT albums_ibfk_1 FOREIGN KEY (SingerId) REFERENCES Singers (SingerId);
+
+ALTER TABLE Songs ADD CONSTRAINT songs_ibfk_1 FOREIGN KEY (AlbumId, SingerId) REFERENCES Albums (AlbumId, SingerId)

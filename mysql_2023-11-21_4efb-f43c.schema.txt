@@ -1,0 +1,76 @@
+-- Schema generated 2023-11-21 12:32:02
+--
+-- Spanner schema for source table Albums
+--
+CREATE TABLE Albums (
+	SingerId INT8 NOT NULL, -- From: SingerId int(10)
+	AlbumId INT8 NOT NULL,  -- From: AlbumId int(10)
+	AlbumTitle VARCHAR(50), -- From: AlbumTitle varchar(50)
+	PRIMARY KEY (SingerId, AlbumId)
+);
+
+--
+-- Spanner schema for source table Persons
+--
+CREATE TABLE Persons (
+	ID INT8 NOT NULL,               -- From: ID int(10)
+	LastName VARCHAR(255) NOT NULL, -- From: LastName varchar(255)
+	FirstName VARCHAR(255),         -- From: FirstName varchar(255)
+	Age INT8,                       -- From: Age int(10)
+	PRIMARY KEY (ID)
+);
+
+--
+-- Spanner schema for source table Singers
+--
+CREATE TABLE Singers (
+	SingerId INT8 NOT NULL,  -- From: SingerId int(10)
+	FirstName VARCHAR(1024), -- From: FirstName varchar(1024)
+	LastName VARCHAR(1024),  -- From: LastName varchar(1024)
+	SingerInfo VARCHAR(100), -- From: SingerInfo varchar(100)
+	PRIMARY KEY (SingerId)
+);
+
+--
+-- Spanner schema for source table Songs
+--
+CREATE TABLE Songs (
+	SingerId INT8 NOT NULL, -- From: SingerId int(10)
+	AlbumId INT8 NOT NULL,  -- From: AlbumId int(10)
+	TrackId INT8 NOT NULL,  -- From: TrackId int(10)
+	SongName VARCHAR(50),   -- From: SongName varchar(50)
+	PRIMARY KEY (SingerId, AlbumId, TrackId)
+);
+
+--
+-- Spanner schema for source table locations
+--
+CREATE TABLE locations (
+	name VARCHAR(50),          -- From: name varchar(50)
+	location VARCHAR(2621440), -- From: location geometry
+	synth_id VARCHAR(50),
+	PRIMARY KEY (synth_id)
+);
+
+--
+-- Spanner schema for source table locations1
+--
+CREATE TABLE locations1 (
+	name VARCHAR(50),          -- From: name varchar(50)
+	location VARCHAR(2621440), -- From: location geometry
+	synth_id VARCHAR(50),
+	PRIMARY KEY (synth_id)
+);
+
+--
+-- Spanner schema for source table t1
+--
+CREATE TABLE t1 (
+	jdoc JSONB,           -- From: jdoc json
+	synth_id VARCHAR(50),
+	PRIMARY KEY (synth_id)
+);
+
+ALTER TABLE Albums ADD CONSTRAINT albums_ibfk_1 FOREIGN KEY (SingerId) REFERENCES Singers (SingerId);
+
+ALTER TABLE Songs ADD CONSTRAINT songs_ibfk_1 FOREIGN KEY (AlbumId, SingerId) REFERENCES Albums (AlbumId, SingerId)

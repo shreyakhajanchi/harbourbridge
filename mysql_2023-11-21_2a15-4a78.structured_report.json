@@ -1,0 +1,239 @@
+{
+ "summary": {
+  "text": "Schema conversion: POOR (50% of 20 columns mapped cleanly) + some missing primary keys.\n",
+  "rating": "POOR",
+  "dbName": "mysql_2023-11-21_2a15-4a78"
+ },
+ "isSharded": false,
+ "ignoredStatements": null,
+ "conversionMetadata": [
+  {
+   "conversionType": "Schema",
+   "duration": 75102375
+  },
+  {
+   "conversionType": "Data",
+   "duration": 0
+  }
+ ],
+ "migrationType": "SCHEMA_AND_DATA",
+ "statementStats": {
+  "driverName": "",
+  "statementStats": null
+ },
+ "nameChanges": null,
+ "tableReports": [
+  {
+   "srcTableName": "Albums",
+   "spTableName": "Albums",
+   "schemaReport": {
+    "rating": "POOR",
+    "pkMissing": false,
+    "issues": 1,
+    "warnings": 1,
+    "totalColumns": 3
+   },
+   "dataReport": {
+    "rating": "",
+    "badRows": 0,
+    "totalRows": 0,
+    "dryRun": false
+   },
+   "issues": [
+    {
+     "issueType": "Warning",
+     "issueList": [
+      {
+       "category": "STORAGE_WARNING",
+       "description": "Table 'Albums': Some columns will consume more storage in Spanner e.g. for column 'AlbumId', source DB type int(10) is mapped to Spanner data type int8"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "srcTableName": "Persons",
+   "spTableName": "Persons",
+   "schemaReport": {
+    "rating": "POOR",
+    "pkMissing": false,
+    "issues": 2,
+    "warnings": 2,
+    "totalColumns": 4
+   },
+   "dataReport": {
+    "rating": "",
+    "badRows": 0,
+    "totalRows": 0,
+    "dryRun": false
+   },
+   "issues": [
+    {
+     "issueType": "Warnings",
+     "issueList": [
+      {
+       "category": "STORAGE_WARNING",
+       "description": "Table 'Persons': Some columns will consume more storage in Spanner e.g. for column 'Age', source DB type int(10) is mapped to Spanner data type int8"
+      },
+      {
+       "category": "UNIQUE_INDEX_PRIMARY_KEY",
+       "description": "UNIQUE constraint on column(s) 'c25' replaced with primary key since table 'Persons' didn't have one. Spanner requires a primary key for every table"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "srcTableName": "Singers",
+   "spTableName": "Singers",
+   "schemaReport": {
+    "rating": "OK",
+    "pkMissing": false,
+    "issues": 1,
+    "warnings": 1,
+    "totalColumns": 4
+   },
+   "dataReport": {
+    "rating": "",
+    "badRows": 0,
+    "totalRows": 0,
+    "dryRun": false
+   },
+   "issues": [
+    {
+     "issueType": "Warning",
+     "issueList": [
+      {
+       "category": "STORAGE_WARNING",
+       "description": "Table 'Singers': Some columns will consume more storage in Spanner e.g. for column 'SingerId', source DB type int(10) is mapped to Spanner data type int8"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "srcTableName": "Songs",
+   "spTableName": "Songs",
+   "schemaReport": {
+    "rating": "OK",
+    "pkMissing": false,
+    "issues": 1,
+    "warnings": 1,
+    "totalColumns": 4
+   },
+   "dataReport": {
+    "rating": "",
+    "badRows": 0,
+    "totalRows": 0,
+    "dryRun": false
+   },
+   "issues": [
+    {
+     "issueType": "Warning",
+     "issueList": [
+      {
+       "category": "STORAGE_WARNING",
+       "description": "Table 'Songs': Some columns will consume more storage in Spanner e.g. for column 'AlbumId', source DB type int(10) is mapped to Spanner data type int8"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "srcTableName": "locations",
+   "spTableName": "locations",
+   "schemaReport": {
+    "rating": "POOR",
+    "pkMissing": true,
+    "issues": 2,
+    "warnings": 2,
+    "totalColumns": 2
+   },
+   "dataReport": {
+    "rating": "",
+    "badRows": 0,
+    "totalRows": 0,
+    "dryRun": false
+   },
+   "issues": [
+    {
+     "issueType": "Warnings",
+     "issueList": [
+      {
+       "category": "INAPPROPRIATE_TYPE",
+       "description": "Table 'locations': Column 'location', type geometry is mapped to varchar(2621440). No appropriate Spanner type. The column will be made nullable in Spanner"
+      },
+      {
+       "category": "MISSING_PRIMARY_KEY",
+       "description": "Column 'synth_id' was added because table 'locations' didn't have a primary key. Spanner requires a primary key for every table"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "srcTableName": "locations1",
+   "spTableName": "locations1",
+   "schemaReport": {
+    "rating": "POOR",
+    "pkMissing": true,
+    "issues": 2,
+    "warnings": 2,
+    "totalColumns": 2
+   },
+   "dataReport": {
+    "rating": "",
+    "badRows": 0,
+    "totalRows": 0,
+    "dryRun": false
+   },
+   "issues": [
+    {
+     "issueType": "Warnings",
+     "issueList": [
+      {
+       "category": "INAPPROPRIATE_TYPE",
+       "description": "Table 'locations1': Column 'location', type geometry is mapped to varchar(2621440). No appropriate Spanner type. The column will be made nullable in Spanner"
+      },
+      {
+       "category": "MISSING_PRIMARY_KEY",
+       "description": "Column 'synth_id' was added because table 'locations1' didn't have a primary key. Spanner requires a primary key for every table"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "srcTableName": "t1",
+   "spTableName": "t1",
+   "schemaReport": {
+    "rating": "POOR",
+    "pkMissing": true,
+    "issues": 1,
+    "warnings": 1,
+    "totalColumns": 1
+   },
+   "dataReport": {
+    "rating": "",
+    "badRows": 0,
+    "totalRows": 0,
+    "dryRun": false
+   },
+   "issues": [
+    {
+     "issueType": "Warning",
+     "issueList": [
+      {
+       "category": "MISSING_PRIMARY_KEY",
+       "description": "Column 'synth_id' was added because table 't1' didn't have a primary key. Spanner requires a primary key for every table"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "unexpectedConditions": {
+  "Reparsed": 0,
+  "unexpectedConditions": null
+ }
+}

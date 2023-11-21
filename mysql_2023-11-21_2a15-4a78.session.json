@@ -1,0 +1,1139 @@
+{
+ "SpSchema": {
+  "t1": {
+   "Name": "Persons",
+   "ColIds": [
+    "c25",
+    "c27",
+    "c28",
+    "c29"
+   ],
+   "ShardIdColumn": "",
+   "ColDefs": {
+    "c25": {
+     "Name": "ID",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: ID int(10)",
+     "Id": "c25"
+    },
+    "c27": {
+     "Name": "LastName",
+     "T": {
+      "Name": "STRING",
+      "Len": 255,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: LastName varchar(255)",
+     "Id": "c27"
+    },
+    "c28": {
+     "Name": "FirstName",
+     "T": {
+      "Name": "STRING",
+      "Len": 255,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: FirstName varchar(255)",
+     "Id": "c28"
+    },
+    "c29": {
+     "Name": "Age",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: Age int(10)",
+     "Id": "c29"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c25",
+     "Desc": false,
+     "Order": 1
+    }
+   ],
+   "ForeignKeys": null,
+   "Indexes": [],
+   "ParentId": "",
+   "Comment": "Spanner schema for source table Persons",
+   "Id": "t1"
+  },
+  "t2": {
+   "Name": "t1",
+   "ColIds": [
+    "c10",
+    "c32"
+   ],
+   "ShardIdColumn": "",
+   "ColDefs": {
+    "c10": {
+     "Name": "jdoc",
+     "T": {
+      "Name": "JSON",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: jdoc json",
+     "Id": "c10"
+    },
+    "c32": {
+     "Name": "synth_id",
+     "T": {
+      "Name": "STRING",
+      "Len": 50,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "",
+     "Id": "c32"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c32",
+     "Desc": false,
+     "Order": 1
+    }
+   ],
+   "ForeignKeys": null,
+   "Indexes": null,
+   "ParentId": "",
+   "Comment": "Spanner schema for source table t1",
+   "Id": "t2"
+  },
+  "t3": {
+   "Name": "Singers",
+   "ColIds": [
+    "c11",
+    "c14",
+    "c16",
+    "c18"
+   ],
+   "ShardIdColumn": "",
+   "ColDefs": {
+    "c11": {
+     "Name": "SingerId",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: SingerId int(10)",
+     "Id": "c11"
+    },
+    "c14": {
+     "Name": "FirstName",
+     "T": {
+      "Name": "STRING",
+      "Len": 1024,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: FirstName varchar(1024)",
+     "Id": "c14"
+    },
+    "c16": {
+     "Name": "LastName",
+     "T": {
+      "Name": "STRING",
+      "Len": 1024,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: LastName varchar(1024)",
+     "Id": "c16"
+    },
+    "c18": {
+     "Name": "SingerInfo",
+     "T": {
+      "Name": "STRING",
+      "Len": 100,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: SingerInfo varchar(100)",
+     "Id": "c18"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c11",
+     "Desc": false,
+     "Order": 1
+    }
+   ],
+   "ForeignKeys": null,
+   "Indexes": null,
+   "ParentId": "",
+   "Comment": "Spanner schema for source table Singers",
+   "Id": "t3"
+  },
+  "t4": {
+   "Name": "locations1",
+   "ColIds": [
+    "c23",
+    "c26",
+    "c31"
+   ],
+   "ShardIdColumn": "",
+   "ColDefs": {
+    "c23": {
+     "Name": "name",
+     "T": {
+      "Name": "STRING",
+      "Len": 50,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: name varchar(50)",
+     "Id": "c23"
+    },
+    "c26": {
+     "Name": "location",
+     "T": {
+      "Name": "STRING",
+      "Len": 9223372036854775807,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: location geometry",
+     "Id": "c26"
+    },
+    "c31": {
+     "Name": "synth_id",
+     "T": {
+      "Name": "STRING",
+      "Len": 50,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "",
+     "Id": "c31"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c31",
+     "Desc": false,
+     "Order": 1
+    }
+   ],
+   "ForeignKeys": null,
+   "Indexes": null,
+   "ParentId": "",
+   "Comment": "Spanner schema for source table locations1",
+   "Id": "t4"
+  },
+  "t5": {
+   "Name": "Songs",
+   "ColIds": [
+    "c12",
+    "c19",
+    "c20",
+    "c21"
+   ],
+   "ShardIdColumn": "",
+   "ColDefs": {
+    "c12": {
+     "Name": "SingerId",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: SingerId int(10)",
+     "Id": "c12"
+    },
+    "c19": {
+     "Name": "AlbumId",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: AlbumId int(10)",
+     "Id": "c19"
+    },
+    "c20": {
+     "Name": "TrackId",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: TrackId int(10)",
+     "Id": "c20"
+    },
+    "c21": {
+     "Name": "SongName",
+     "T": {
+      "Name": "STRING",
+      "Len": 50,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: SongName varchar(50)",
+     "Id": "c21"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c12",
+     "Desc": false,
+     "Order": 1
+    },
+    {
+     "ColId": "c19",
+     "Desc": false,
+     "Order": 2
+    },
+    {
+     "ColId": "c20",
+     "Desc": false,
+     "Order": 3
+    }
+   ],
+   "ForeignKeys": [
+    {
+     "Name": "songs_ibfk_1",
+     "ColIds": [
+      "c19",
+      "c12"
+     ],
+     "ReferTableId": "t6",
+     "ReferColumnIds": [
+      "c15",
+      "c13"
+     ],
+     "Id": "f9"
+    }
+   ],
+   "Indexes": null,
+   "ParentId": "",
+   "Comment": "Spanner schema for source table Songs",
+   "Id": "t5"
+  },
+  "t6": {
+   "Name": "Albums",
+   "ColIds": [
+    "c13",
+    "c15",
+    "c17"
+   ],
+   "ShardIdColumn": "",
+   "ColDefs": {
+    "c13": {
+     "Name": "SingerId",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: SingerId int(10)",
+     "Id": "c13"
+    },
+    "c15": {
+     "Name": "AlbumId",
+     "T": {
+      "Name": "INT64",
+      "Len": 0,
+      "IsArray": false
+     },
+     "NotNull": true,
+     "Comment": "From: AlbumId int(10)",
+     "Id": "c15"
+    },
+    "c17": {
+     "Name": "AlbumTitle",
+     "T": {
+      "Name": "STRING",
+      "Len": 50,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: AlbumTitle varchar(50)",
+     "Id": "c17"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c13",
+     "Desc": false,
+     "Order": 1
+    },
+    {
+     "ColId": "c15",
+     "Desc": false,
+     "Order": 2
+    }
+   ],
+   "ForeignKeys": [
+    {
+     "Name": "albums_ibfk_1",
+     "ColIds": [
+      "c13"
+     ],
+     "ReferTableId": "t3",
+     "ReferColumnIds": [
+      "c11"
+     ],
+     "Id": "f8"
+    }
+   ],
+   "Indexes": null,
+   "ParentId": "",
+   "Comment": "Spanner schema for source table Albums",
+   "Id": "t6"
+  },
+  "t7": {
+   "Name": "locations",
+   "ColIds": [
+    "c22",
+    "c24",
+    "c33"
+   ],
+   "ShardIdColumn": "",
+   "ColDefs": {
+    "c22": {
+     "Name": "name",
+     "T": {
+      "Name": "STRING",
+      "Len": 50,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: name varchar(50)",
+     "Id": "c22"
+    },
+    "c24": {
+     "Name": "location",
+     "T": {
+      "Name": "STRING",
+      "Len": 9223372036854775807,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "From: location geometry",
+     "Id": "c24"
+    },
+    "c33": {
+     "Name": "synth_id",
+     "T": {
+      "Name": "STRING",
+      "Len": 50,
+      "IsArray": false
+     },
+     "NotNull": false,
+     "Comment": "",
+     "Id": "c33"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c33",
+     "Desc": false,
+     "Order": 1
+    }
+   ],
+   "ForeignKeys": null,
+   "Indexes": null,
+   "ParentId": "",
+   "Comment": "Spanner schema for source table locations",
+   "Id": "t7"
+  }
+ },
+ "SyntheticPKeys": {
+  "t2": {
+   "ColId": "c32",
+   "Sequence": 0
+  },
+  "t4": {
+   "ColId": "c31",
+   "Sequence": 0
+  },
+  "t7": {
+   "ColId": "c33",
+   "Sequence": 0
+  }
+ },
+ "SrcSchema": {
+  "t1": {
+   "Name": "Persons",
+   "Schema": "inter",
+   "ColIds": [
+    "c25",
+    "c27",
+    "c28",
+    "c29"
+   ],
+   "ColDefs": {
+    "c25": {
+     "Name": "ID",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c25"
+    },
+    "c27": {
+     "Name": "LastName",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       255
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c27"
+    },
+    "c28": {
+     "Name": "FirstName",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       255
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c28"
+    },
+    "c29": {
+     "Name": "Age",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c29"
+    }
+   },
+   "PrimaryKeys": null,
+   "ForeignKeys": null,
+   "Indexes": [
+    {
+     "Name": "ID",
+     "Unique": true,
+     "Keys": [
+      {
+       "ColId": "c25",
+       "Desc": false,
+       "Order": 1
+      }
+     ],
+     "Id": "i30",
+     "StoredColumnIds": null
+    }
+   ],
+   "Id": "t1"
+  },
+  "t2": {
+   "Name": "t1",
+   "Schema": "inter",
+   "ColIds": [
+    "c10"
+   ],
+   "ColDefs": {
+    "c10": {
+     "Name": "jdoc",
+     "Type": {
+      "Name": "json",
+      "Mods": null,
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c10"
+    }
+   },
+   "PrimaryKeys": null,
+   "ForeignKeys": null,
+   "Indexes": null,
+   "Id": "t2"
+  },
+  "t3": {
+   "Name": "Singers",
+   "Schema": "inter",
+   "ColIds": [
+    "c11",
+    "c14",
+    "c16",
+    "c18"
+   ],
+   "ColDefs": {
+    "c11": {
+     "Name": "SingerId",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c11"
+    },
+    "c14": {
+     "Name": "FirstName",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       1024
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c14"
+    },
+    "c16": {
+     "Name": "LastName",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       1024
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c16"
+    },
+    "c18": {
+     "Name": "SingerInfo",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       100
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c18"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c11",
+     "Desc": false,
+     "Order": 1
+    }
+   ],
+   "ForeignKeys": null,
+   "Indexes": null,
+   "Id": "t3"
+  },
+  "t4": {
+   "Name": "locations1",
+   "Schema": "inter",
+   "ColIds": [
+    "c23",
+    "c26"
+   ],
+   "ColDefs": {
+    "c23": {
+     "Name": "name",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       50
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c23"
+    },
+    "c26": {
+     "Name": "location",
+     "Type": {
+      "Name": "geometry",
+      "Mods": null,
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c26"
+    }
+   },
+   "PrimaryKeys": null,
+   "ForeignKeys": null,
+   "Indexes": null,
+   "Id": "t4"
+  },
+  "t5": {
+   "Name": "Songs",
+   "Schema": "inter",
+   "ColIds": [
+    "c12",
+    "c19",
+    "c20",
+    "c21"
+   ],
+   "ColDefs": {
+    "c12": {
+     "Name": "SingerId",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c12"
+    },
+    "c19": {
+     "Name": "AlbumId",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c19"
+    },
+    "c20": {
+     "Name": "TrackId",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c20"
+    },
+    "c21": {
+     "Name": "SongName",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       50
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c21"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c12",
+     "Desc": false,
+     "Order": 1
+    },
+    {
+     "ColId": "c19",
+     "Desc": false,
+     "Order": 2
+    },
+    {
+     "ColId": "c20",
+     "Desc": false,
+     "Order": 3
+    }
+   ],
+   "ForeignKeys": [
+    {
+     "Name": "songs_ibfk_1",
+     "ColIds": [
+      "c19",
+      "c12"
+     ],
+     "ReferTableId": "t6",
+     "ReferColumnIds": [
+      "c15",
+      "c13"
+     ],
+     "OnDelete": "",
+     "OnUpdate": "",
+     "Id": "f9"
+    }
+   ],
+   "Indexes": null,
+   "Id": "t5"
+  },
+  "t6": {
+   "Name": "Albums",
+   "Schema": "inter",
+   "ColIds": [
+    "c13",
+    "c15",
+    "c17"
+   ],
+   "ColDefs": {
+    "c13": {
+     "Name": "SingerId",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c13"
+    },
+    "c15": {
+     "Name": "AlbumId",
+     "Type": {
+      "Name": "int",
+      "Mods": [
+       10
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": true,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c15"
+    },
+    "c17": {
+     "Name": "AlbumTitle",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       50
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c17"
+    }
+   },
+   "PrimaryKeys": [
+    {
+     "ColId": "c13",
+     "Desc": false,
+     "Order": 1
+    },
+    {
+     "ColId": "c15",
+     "Desc": false,
+     "Order": 2
+    }
+   ],
+   "ForeignKeys": [
+    {
+     "Name": "albums_ibfk_1",
+     "ColIds": [
+      "c13"
+     ],
+     "ReferTableId": "t3",
+     "ReferColumnIds": [
+      "c11"
+     ],
+     "OnDelete": "",
+     "OnUpdate": "",
+     "Id": "f8"
+    }
+   ],
+   "Indexes": null,
+   "Id": "t6"
+  },
+  "t7": {
+   "Name": "locations",
+   "Schema": "inter",
+   "ColIds": [
+    "c22",
+    "c24"
+   ],
+   "ColDefs": {
+    "c22": {
+     "Name": "name",
+     "Type": {
+      "Name": "varchar",
+      "Mods": [
+       50
+      ],
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c22"
+    },
+    "c24": {
+     "Name": "location",
+     "Type": {
+      "Name": "geometry",
+      "Mods": null,
+      "ArrayBounds": null
+     },
+     "NotNull": false,
+     "Ignored": {
+      "Check": false,
+      "Identity": false,
+      "Default": false,
+      "Exclusion": false,
+      "ForeignKey": false,
+      "AutoIncrement": false
+     },
+     "Id": "c24"
+    }
+   },
+   "PrimaryKeys": null,
+   "ForeignKeys": null,
+   "Indexes": null,
+   "Id": "t7"
+  }
+ },
+ "SchemaIssues": {
+  "t1": {
+   "ColumnLevelIssues": {
+    "c25": [
+     14,
+     3
+    ],
+    "c29": [
+     14
+    ]
+   },
+   "TableLevelIssues": null
+  },
+  "t2": {
+   "ColumnLevelIssues": {
+    "c32": [
+     2
+    ]
+   },
+   "TableLevelIssues": null
+  },
+  "t3": {
+   "ColumnLevelIssues": {
+    "c11": [
+     14
+    ]
+   },
+   "TableLevelIssues": null
+  },
+  "t4": {
+   "ColumnLevelIssues": {
+    "c26": [
+     5
+    ],
+    "c31": [
+     2
+    ]
+   },
+   "TableLevelIssues": null
+  },
+  "t5": {
+   "ColumnLevelIssues": {
+    "c12": [
+     14
+    ],
+    "c19": [
+     14
+    ],
+    "c20": [
+     14
+    ]
+   },
+   "TableLevelIssues": null
+  },
+  "t6": {
+   "ColumnLevelIssues": {
+    "c13": [
+     14
+    ],
+    "c15": [
+     14
+    ]
+   },
+   "TableLevelIssues": null
+  },
+  "t7": {
+   "ColumnLevelIssues": {
+    "c24": [
+     5
+    ],
+    "c33": [
+     2
+    ]
+   },
+   "TableLevelIssues": null
+  }
+ },
+ "Location": {},
+ "TimezoneOffset": "+00:00",
+ "SpDialect": "postgresql",
+ "UniquePKey": {
+  "t1": [
+   "c25"
+  ]
+ },
+ "Rules": [],
+ "IsSharded": false
+}

@@ -1,0 +1,100 @@
+----------------------------
+Summary of Conversion
+----------------------------
+Schema conversion: POOR (50% of 20 columns mapped cleanly) + some missing primary keys.
+
+----------------------------
+Time duration of Conversion
+----------------------------
+Schema conversion duration : 30.267625ms 
+
+The remainder of this report provides a table-by-table listing of SCHEMA_AND_DATA
+conversion details. For background on the SCHEMA_AND_DATA conversion process
+used, and explanations of the terms and notes used in this report, see Spanner
+migration tool's README.
+
+No Name Changes in Migration
+----------------------------
+Table Albums
+----------------------------
+Schema conversion: POOR (67% of 3 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Table 'Albums': Some columns will consume more storage in Spanner e.g. for
+   column 'AlbumId', source DB type int(10) is mapped to Spanner data type int8.
+
+----------------------------
+Table Persons
+----------------------------
+Schema conversion: POOR (50% of 4 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'Persons': Some columns will consume more storage in Spanner e.g. for
+   column 'Age', source DB type int(10) is mapped to Spanner data type int8.
+2) UNIQUE constraint on column(s) 'c26' replaced with primary key since table
+   'Persons' didn't have one. Spanner requires a primary key for every table.
+
+----------------------------
+Table Singers
+----------------------------
+Schema conversion: OK (75% of 4 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Table 'Singers': Some columns will consume more storage in Spanner e.g. for
+   column 'SingerId', source DB type int(10) is mapped to Spanner data type
+   int8.
+
+----------------------------
+Table Songs
+----------------------------
+Schema conversion: OK (75% of 4 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Table 'Songs': Some columns will consume more storage in Spanner e.g. for
+   column 'AlbumId', source DB type int(10) is mapped to Spanner data type int8.
+
+----------------------------
+Table locations
+----------------------------
+Schema conversion: POOR ( 0% of 2 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'locations': Column 'location', type geometry is mapped to
+   varchar(2621440). No appropriate Spanner type. The column will be made
+   nullable in Spanner.
+2) Column 'synth_id' was added because table 'locations' didn't have a primary
+   key. Spanner requires a primary key for every table.
+
+----------------------------
+Table locations1
+----------------------------
+Schema conversion: POOR ( 0% of 2 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'locations1': Column 'location', type geometry is mapped to
+   varchar(2621440). No appropriate Spanner type. The column will be made
+   nullable in Spanner.
+2) Column 'synth_id' was added because table 'locations1' didn't have a primary
+   key. Spanner requires a primary key for every table.
+
+----------------------------
+Table t1
+----------------------------
+Schema conversion: POOR ( 0% of 1 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Column 'synth_id' was added because table 't1' didn't have a primary key.
+   Spanner requires a primary key for every table.
+
+----------------------------
+Unexpected Conditions
+----------------------------
+There were no unexpected conditions encountered during processing.
+

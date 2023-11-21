@@ -155,6 +155,8 @@ jobs:
 
       - name: Start Local Server
         run: go run github.com/GoogleCloudPlatform/spanner-migration-tool web &
+        env:
+          SPANNER_EMULATOR_HOST: localhost:9010
 
       - name: Install Dependencies
         run: |

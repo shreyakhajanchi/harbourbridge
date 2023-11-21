@@ -1,13 +1,13 @@
 describe('template spec', () => {
   beforeEach(() => {
-    cy.visit('http://localhost:4200/');
+    cy.visit('http://localhost:8080/');
     cy.fixture('config.json').as('configData');
   });
 
   it('verify direct connection to mysql non-sharded database', () => {
     cy.get('.primary-header').eq(0).should('have.text', 'Get started with Spanner migration tool');
 
-    cy.get('#edit-icon').should('exist').click();
+    cy.get('#edit-icon', { timeout: 10000 }).should('exist').click();
 
     cy.fixture('config').then((json) => {
       cy.get('#project-id').clear().type(json.projectId)

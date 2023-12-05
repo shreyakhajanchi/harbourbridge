@@ -162,7 +162,7 @@ jobs:
       - name: Start Local Server
         run:  |
           cd ui
-          ng serve &
+          npm start &
 
       - name: Wait for Local Server to Start
         run: npx wait-on http://localhost:4200 -t 30000

@@ -1,0 +1,248 @@
+Generated at 2023-12-06 16:48:46 for db 
+
+----------------------------
+Summary of Conversion
+----------------------------
+Schema conversion: OK (69% of 72 columns mapped cleanly) + some missing primary keys.
+
+----------------------------
+Time duration of Conversion
+----------------------------
+Schema conversion duration : 4.541451166s 
+Data conversion duration : 3m43.018519s 
+
+The remainder of this report provides a table-by-table listing of SCHEMA_AND_DATA
+conversion details. For background on the SCHEMA_AND_DATA conversion process
+used, and explanations of the terms and notes used in this report, see Spanner
+migration tool's README.
+
+-----------------------------------------------------------------------------------------------------
+Name Changes in Migration
+-----------------------------------------------------------------------------------------------------
+             Source Table          Change                  Old Name                  New Name
+-----------------------------------------------------------------------------------------------------
+           special.people       TableName            special.people            special_people
+                special.x       TableName                 special.x                 special_x
+-----------------------------------------------------------------------------------------------------
+
+
+----------------------------
+Table enum_info
+----------------------------
+Schema conversion: POOR (33% of 3 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'enum_info': Column 'enum_method', type USER-DEFINED is mapped to
+   string(max). No appropriate Spanner type. The column will be made nullable in
+   Spanner.
+2) Column 'synth_id' was added because table 'enum_info' didn't have a primary
+   key. Spanner requires a primary key for every table.
+
+----------------------------
+Table enum_info1
+----------------------------
+Schema conversion: POOR (67% of 3 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Table 'enum_info1': Column 'enum_method', type USER-DEFINED is mapped to
+   string(max). No appropriate Spanner type. The column will be made nullable in
+   Spanner.
+
+----------------------------
+Table flyway_schema_history
+----------------------------
+Schema conversion: OK (90% of 10 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Table 'flyway_schema_history': Some columns will consume more storage in
+   Spanner e.g. for column 'checksum', source DB type integer(32) is mapped to
+   Spanner data type int64.
+
+Note
+1) Some columns have default values which Spanner migration tool does not
+   migrate. Please add the default constraints manually after the migration is
+   complete for table 'flyway_schema_history' e.g. column 'installed_on'.
+
+Suggestion
+1) Some columns have source DB type 'timestamp without timezone' which is mapped
+   to Spanner type timestamp in table 'flyway_schema_history' e.g. column
+   'installed_on'. Spanner timestamp is closer to PostgreSQL timestamptz.
+
+----------------------------
+Table flyway_schema_history111
+----------------------------
+Schema conversion: OK (90% of 10 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Table 'flyway_schema_history111': Some columns will consume more storage in
+   Spanner e.g. for column 'checksum', source DB type integer(32) is mapped to
+   Spanner data type int64.
+
+Note
+1) Some columns have default values which Spanner migration tool does not
+   migrate. Please add the default constraints manually after the migration is
+   complete for table 'flyway_schema_history111' e.g. column 'installed_on'.
+
+Suggestion
+1) Some columns have source DB type 'timestamp without timezone' which is mapped
+   to Spanner type timestamp in table 'flyway_schema_history111' e.g. column
+   'installed_on'. Spanner timestamp is closer to PostgreSQL timestamptz.
+
+----------------------------
+Table pack_entitlement
+----------------------------
+Schema conversion: EXCELLENT (100% of 1 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+----------------------------
+Table pack_entitlement1
+----------------------------
+Schema conversion: EXCELLENT (100% of 1 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+----------------------------
+Table pack_entitlement13
+----------------------------
+Schema conversion: OK (84% of 19 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'pack_entitlement13': Some columns will consume more storage in Spanner
+   e.g. for column 'grace_period', source DB type integer(32) is mapped to
+   Spanner data type int64.
+2) Table 'pack_entitlement13': Column 'id', type uuid is mapped to string(max).
+   No appropriate Spanner type. The column will be made nullable in Spanner.
+3) Table 'pack_entitlement13': Column 'user_id', type uuid is mapped to
+   string(max). No appropriate Spanner type. The column will be made nullable in
+   Spanner.
+
+Suggestion
+1) Some columns have source DB type 'timestamp without timezone' which is mapped
+   to Spanner type timestamp in table 'pack_entitlement13' e.g. column
+   'created_date'. Spanner timestamp is closer to PostgreSQL timestamptz.
+
+----------------------------
+Table pack_entitlement2
+----------------------------
+Schema conversion: EXCELLENT (100% of 1 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+----------------------------
+Table people
+----------------------------
+Schema conversion: POOR (50% of 2 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Column 'synth_id' was added because table 'people' didn't have a primary key.
+   Spanner requires a primary key for every table.
+
+----------------------------
+Table products
+----------------------------
+Schema conversion: POOR (67% of 3 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Table 'products': Some columns will consume more storage in Spanner e.g. for
+   column 'id', source DB type integer(32) is mapped to Spanner data type int64.
+
+Note
+1) Some columns have default values which Spanner migration tool does not
+   migrate. Please add the default constraints manually after the migration is
+   complete for table 'products' e.g. column 'id'.
+
+----------------------------
+Table sal_emp
+----------------------------
+Schema conversion: POOR (-33% of 3 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'sal_emp': Some columns will consume more storage in Spanner e.g. for
+   column 'pay_by_quarter', source DB type integer[] is mapped to Spanner data
+   type string(max).
+2) Table 'sal_emp': Column 'pay_by_quarter', Array datatype migration is not
+   fully supported. Please validate data after data migration.
+3) Table 'sal_emp': Column 'schedule', Array datatype migration is not fully
+   supported. Please validate data after data migration.
+4) Column 'synth_id' was added because table 'sal_emp' didn't have a primary key.
+   Spanner requires a primary key for every table.
+
+----------------------------
+Table sal_emp1
+----------------------------
+Schema conversion: POOR (-50% of 2 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'sal_emp1': Some columns will consume more storage in Spanner e.g. for
+   column 'pay_by_quarter', source DB type integer[] is mapped to Spanner data
+   type string(max).
+2) Table 'sal_emp1': Column 'pay_by_quarter', Array datatype migration is not
+   fully supported. Please validate data after data migration.
+3) Column 'synth_id' was added because table 'sal_emp1' didn't have a primary
+   key. Spanner requires a primary key for every table.
+
+----------------------------
+Table special.people
+----------------------------
+Schema conversion: POOR ( 0% of 1 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Names must adhere to the spanner regular expression
+   {a-z|A-Z}[{a-z|A-Z|0-9|_}+], Table 'special.people' is mapped to
+   'special_people'.
+2) Table 'special_people': Some columns will consume more storage in Spanner e.g.
+   for column 'id', source DB type integer(32) is mapped to Spanner data type
+   int64.
+
+----------------------------
+Table special.x
+----------------------------
+Schema conversion: POOR ( 0% of 1 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Names must adhere to the spanner regular expression
+   {a-z|A-Z}[{a-z|A-Z|0-9|_}+], Table 'special.x' is mapped to 'special_x'.
+2) Column 'synth_id' was added because table 'special_x' didn't have a primary
+   key. Spanner requires a primary key for every table.
+
+----------------------------
+Table subscription
+----------------------------
+Schema conversion: OK (82% of 11 columns mapped cleanly).
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warnings
+1) Table 'subscription': Column 'id', type uuid is mapped to string(max). No
+   appropriate Spanner type. The column will be made nullable in Spanner.
+2) Table 'subscription': Column 'user_id', type uuid is mapped to string(max). No
+   appropriate Spanner type. The column will be made nullable in Spanner.
+
+Suggestion
+1) Some columns have source DB type 'timestamp without timezone' which is mapped
+   to Spanner type timestamp in table 'subscription' e.g. column 'created_date'.
+   Spanner timestamp is closer to PostgreSQL timestamptz.
+
+----------------------------
+Table x
+----------------------------
+Schema conversion: POOR ( 0% of 1 columns mapped cleanly) + missing primary key.
+Data conversion:  (100% of 0 rows written to Spanner).
+
+Warning
+1) Column 'synth_id' was added because table 'x' didn't have a primary key.
+   Spanner requires a primary key for every table.
+
+----------------------------
+Unexpected Conditions
+----------------------------
+There were no unexpected conditions encountered during processing.
+

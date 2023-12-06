@@ -1,0 +1,47 @@
+{
+ "datastreamCfg": {
+  "streamId": "",
+  "streamLocation": "us-east1",
+  "streamDisplayName": "",
+  "sourceConnectionConfig": {
+   "Name": "test124x",
+   "Location": "us-east1"
+  },
+  "destinationConnectionConfig": {
+   "Name": "dec611",
+   "Location": "us-east1",
+   "Prefix": ""
+  },
+  "properties": "replicationSlot=rep1,publication=pub1",
+  "maxConcurrentBackfillTasks": "",
+  "maxConcurrentCdcTasks": ""
+ },
+ "gcsCfg": {
+  "ttlInDays": 0,
+  "ttlInDaysSet": false
+ },
+ "dataflowCfg": {
+  "projectId": "",
+  "jobName": "",
+  "location": "us-east1",
+  "hostProjectId": "",
+  "network": "",
+  "subnetwork": "",
+  "maxWorkers": "",
+  "numWorkers": "",
+  "serviceAccountEmail": "",
+  "machineType": "",
+  "additionalUserLabels": "",
+  "kmsKeyName": "",
+  "gcsTemplatePath": "",
+  "dbNameToShardIdMap": null
+ },
+ "tmpDir": "gs://smt-49e40ae4-ba7f-4df9-86f5-d92cea2d281d/",
+ "pubsubCfg": {
+  "TopicId": "",
+  "SubscriptionId": "",
+  "NotificationId": "",
+  "BucketName": ""
+ },
+ "dataShardId": ""
+}

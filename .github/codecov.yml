@@ -28,7 +28,7 @@ component_management:
         - "!cmd/**"
       statuses: # each component has its own status and corresponding configuration
         - type: project
-          informational: true
+          informational: false
     - component_id: cli 
       name: cli # only the CLI
       paths:

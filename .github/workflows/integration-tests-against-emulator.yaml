@@ -135,6 +135,7 @@ jobs:
           sudo cp -r usr/* /usr/
           sudo sh -c 'echo /usr/lib/oracle/21.14/client64/lib/ > /etc/ld.so.conf.d/oracle.conf'
           sudo ldconfig
+          echo 'export LD_LIBRARY_PATH=/usr/lib/oracle/21.14/client64/lib' >> $GITHUB_ENV
       - name: Wait for Oracle XE to be ready
         run: |
           echo "Waiting for Oracle XE to be ready..."

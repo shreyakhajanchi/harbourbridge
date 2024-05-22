@@ -129,8 +129,8 @@ jobs:
           sudo apt install alien libaio1
           curl -O https://download.oracle.com/otn_software/linux/instantclient/2114000/oracle-instantclient-basic-21.14.0.0.0-1.x86_64.rpm          
           curl -O https://download.oracle.com/otn_software/linux/instantclient/2114000/oracle-instantclient-sqlplus-21.14.0.0.0-1.x86_64.rpm
-          sudo alien -k oracle-instantclient-basic-21.14.0.0.0-1.x86_64.rpm
-          sudo alien -k oracle-instantclient-sqlplus-21.14.0.0.0-1.x86_64.rpm
+          sudo alien --scripts -i oracle-instantclient-basic-21.14.0.0.0-1.x86_64.rpm
+          sudo alien --scripts -i oracle-instantclient-sqlplus-21.14.0.0.0-1.x86_64.rpm
           sudo sh -c 'echo /usr/lib/oracle/21.14/client64/lib/ > /etc/ld.so.conf.d/oracle.conf'
           sudo ldconfig
       - run: sqlplus SYS/oracle@127.0.0.1:1521/xe as sysdba @test_data/oracle.test.out

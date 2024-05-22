@@ -123,16 +123,26 @@ jobs:
       - run: sqlcmd -U sa -P ${MSSQL_SA_PASSWORD} -i test_data/sqlserver.test.out
 
       # sqlplus set up init oracle db.
-      - name: Install sqlplus required for loading .sql files
-        run: |
-          sudo apt-get update
-          sudo apt install alien libaio1
-          curl -O https://download.oracle.com/otn_software/linux/instantclient/2340000/oracle-instantclient-basic-23.4.0.24.05-1.el9.x86_64.rpm          
-          curl -O https://download.oracle.com/otn_software/linux/instantclient/2340000/oracle-instantclient-sqlplus-23.4.0.24.05-1.el9.x86_64.rpm
-          sudo alien -i oracle-instantclient-basic-23.4.0.24.05-1.el9.x86_64.rpm
-          sudo alien -i oracle-instantclient-sqlplus-23.4.0.24.05-1.el9.x86_64.rpm
-          sudo sh -c 'echo /usr/lib/oracle/23.4/client64/lib/ > /etc/ld.so.conf.d/oracle.conf'
-          sudo ldconfig
+      - name: Run in Oracle Instant Client Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: oracleinanutshell/oracle-xe-11g:latest
+          options: --entrypoint ""
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y libaio1
+            curl -O https://download.oracle.com/otn_software/linux/instantclient/2114000/oracle-instantclient-basic-21.14.0.0.0-1.x86_64.rpm
+            curl -O https://download.oracle.com/otn_software/linux/instantclient/2114000/oracle-instantclient-sqlplus-21.14.0.0.0-1.x86_64.rpm
+            rpm -i oracle-instantclient-basic-21.14.0.0.0-1.x86_64.rpm
+            rpm -i oracle-instantclient-sqlplus-21.14.0.0.0-1.x86_64.rpm
+            echo /usr/lib/oracle/21.14/client64/lib/ > /etc/ld.so.conf.d/oracle.conf
+            ldconfig
+            if ! command -v sqlplus &> /dev/null; then
+              echo "sqlplus command not found, installation failed"
+              exit 1
+            else
+              echo "sqlplus installed successfully"
+            fi
       - run: sqlplus SYS/oracle@127.0.0.1:1521/xe as sysdba @test_data/oracle.test.out
       # create a spanner instance
       - uses: actions/setup-python@v4

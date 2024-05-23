@@ -135,6 +135,13 @@ jobs:
           sudo cp -r usr/* /usr/
           sudo sh -c 'echo /usr/lib/oracle/23.4/client64/lib/ > /etc/ld.so.conf.d/oracle.conf'
           sudo ldconfig
+      - name: Verify sqlplus installation
+        run: |
+          export LD_LIBRARY_PATH=/usr/lib/oracle/23.4/client64/lib
+          echo $LD_LIBRARY_PATH
+          ls -l /usr/lib/oracle/23.4/client64/lib
+          ldd $(which sqlplus)
+          sqlplus -version
       - name: Load Oracle test data
         run: |
           export LD_LIBRARY_PATH=/usr/lib/oracle/23.4/client64/lib

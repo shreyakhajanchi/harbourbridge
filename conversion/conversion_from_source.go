@@ -30,7 +30,6 @@ import (
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/logger"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/profiles"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/common"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/csv"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/spanner/writer"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/streaming"
 	"go.uber.org/zap"
@@ -46,7 +45,6 @@ type SchemaFromSourceImpl struct{}
 type DataFromSourceInterface interface {
 	dataFromDatabase(ctx context.Context, migrationProjectId string, sourceProfile profiles.SourceProfile, targetProfile profiles.TargetProfile, config writer.BatchWriterConfig, conv *internal.Conv, client *sp.Client, getInfo GetInfoInterface, dataFromDb DataFromDatabaseInterface, snapshotMigration SnapshotMigrationInterface) (*writer.BatchWriter, error)
 	dataFromDump(driver string, config writer.BatchWriterConfig, ioHelper *utils.IOStreams, client *sp.Client, conv *internal.Conv, dataOnly bool, processDump ProcessDumpByDialectInterface, populateDataConv PopulateDataConvInterface) (*writer.BatchWriter, error)
-	dataFromCSV(ctx context.Context, sourceProfile profiles.SourceProfile, targetProfile profiles.TargetProfile, config writer.BatchWriterConfig, conv *internal.Conv, client *sp.Client, populateDataConv PopulateDataConvInterface, csv csv.CsvInterface) (*writer.BatchWriter, error)
 }
 
 type DataFromSourceImpl struct{}
@@ -151,59 +149,6 @@ func (sads *DataFromSourceImpl) dataFromDump(driver string, config writer.BatchW
 	batchWriter.Flush()
 	conv.Audit.Progress.Done()
 
-	return batchWriter, nil
-}
-
-func (sads *DataFromSourceImpl) dataFromCSV(ctx context.Context, sourceProfile profiles.SourceProfile, targetProfile profiles.TargetProfile, config writer.BatchWriterConfig, conv *internal.Conv, client *sp.Client, populateDataConv PopulateDataConvInterface, csv csv.CsvInterface) (*writer.BatchWriter, error) {
-	//coverage:ignore
-	if targetProfile.Conn.Sp.Dbname == "" {
-		return nil, fmt.Errorf("dbName is mandatory in target-profile for csv source")
-	}
-	conv.SpDialect = targetProfile.Conn.Sp.Dialect
-	dialect, err := targetProfile.FetchTargetDialect(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch dialect: %v", err)
-	}
-	if strings.ToLower(dialect) != constants.DIALECT_POSTGRESQL {
-		dialect = constants.DIALECT_GOOGLESQL
-	}
-
-	if dialect != conv.SpDialect {
-		return nil, fmt.Errorf("dialect specified in target profile does not match spanner dialect")
-	}
-
-	delimiterStr := sourceProfile.Csv.Delimiter
-	if len(delimiterStr) != 1 {
-		return nil, fmt.Errorf("delimiter should only be a single character long, found '%s'", delimiterStr)
-	}
-
-	delimiter := rune(delimiterStr[0])
-
-	err = utils.ReadSpannerSchema(ctx, conv, client)
-	if err != nil {
-		return nil, fmt.Errorf("error trying to read and convert spanner schema: %v", err)
-	}
-
-	tables, err := csv.GetCSVFiles(conv, sourceProfile)
-	if err != nil {
-		return nil, fmt.Errorf("error finding csv files: %v", err)
-	}
-
-	// Find the number of rows in each csv file for generating stats.
-	err = csv.SetRowStats(conv, tables, delimiter)
-	if err != nil {
-		return nil, err
-	}
-
-	totalRows := conv.Rows()
-	conv.Audit.Progress = *internal.NewProgress(totalRows, "Writing data to Spanner", internal.Verbose(), false, int(internal.DataWriteInProgress))
-	batchWriter := populateDataConv.populateDataConv(conv, config, client)
-	err = csv.ProcessCSV(conv, tables, sourceProfile.Csv.NullStr, delimiter)
-	if err != nil {
-		return nil, fmt.Errorf("can't process csv: %v", err)
-	}
-	batchWriter.Flush()
-	conv.Audit.Progress.Done()
 	return batchWriter, nil
 }
 

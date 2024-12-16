@@ -19,9 +19,7 @@ import (
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/schema"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/common"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/mysql"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/oracle"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/postgres"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/sqlserver"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/spanner/ddl"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/webv2/config"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/webv2/helpers"
@@ -75,10 +73,6 @@ func ConvertSchemaSQL(w http.ResponseWriter, r *http.Request) {
 	case constants.POSTGRES:
 		temp := false
 		err = processSchema.ProcessSchema(conv, postgres.InfoSchemaImpl{Db: sessionState.SourceDB, IsSchemaUnique: &temp}, common.DefaultWorkers, additionalSchemaAttributes, &common.SchemaToSpannerImpl{}, &common.UtilsOrderImpl{}, &common.InfoSchemaImpl{})
-	case constants.SQLSERVER:
-		err = processSchema.ProcessSchema(conv, sqlserver.InfoSchemaImpl{DbName: sessionState.DbName, Db: sessionState.SourceDB}, common.DefaultWorkers, additionalSchemaAttributes, &common.SchemaToSpannerImpl{}, &common.UtilsOrderImpl{}, &common.InfoSchemaImpl{})
-	case constants.ORACLE:
-		err = processSchema.ProcessSchema(conv, oracle.InfoSchemaImpl{DbName: strings.ToUpper(sessionState.DbName), Db: sessionState.SourceDB}, common.DefaultWorkers, additionalSchemaAttributes, &common.SchemaToSpannerImpl{}, &common.UtilsOrderImpl{}, &common.InfoSchemaImpl{})
 	default:
 		http.Error(w, fmt.Sprintf("Driver : '%s' is not supported", sessionState.Driver), http.StatusBadRequest)
 		return
@@ -290,10 +284,6 @@ func GetTypeMap(w http.ResponseWriter, r *http.Request) {
 		typeMap = mysqlTypeMap
 	case constants.POSTGRES, constants.PGDUMP:
 		typeMap = postgresTypeMap
-	case constants.SQLSERVER:
-		typeMap = sqlserverTypeMap
-	case constants.ORACLE:
-		typeMap = oracleTypeMap
 	default:
 		http.Error(w, fmt.Sprintf("Driver : '%s' is not supported", sessionState.Driver), http.StatusBadRequest)
 		return
@@ -309,14 +299,7 @@ func GetTypeMap(w http.ResponseWriter, r *http.Request) {
 			// Typemap for  TIMESTAMP(6), TIMESTAMP(6) WITH LOCAL TIMEZONE,TIMESTAMP(6) WITH TIMEZONE is stored into TIMESTAMP key.
 			// Same goes with interval types like INTERVAL YEAR(2) TO MONTH, INTERVAL DAY(2) TO SECOND(6) etc.
 			// If exact key not found then check with regex.
-			if _, ok := typeMap[colDef.Type.Name]; !ok {
-				if oracle.TimestampReg.MatchString(colDef.Type.Name) {
-					filteredTypeMap[colDef.Type.Name] = typeMap["TIMESTAMP"]
-				} else if oracle.IntervalReg.MatchString(colDef.Type.Name) {
-					filteredTypeMap[colDef.Type.Name] = typeMap["INTERVAL"]
-				}
-				continue
-			}
+
 			filteredTypeMap[colDef.Type.Name] = typeMap[colDef.Type.Name]
 		}
 	}
@@ -958,10 +941,6 @@ func restoreTableHelper(w http.ResponseWriter, tableId string) session.ConvWithM
 		toddl = mysql.InfoSchemaImpl{}.GetToDdl()
 	case constants.POSTGRES:
 		toddl = postgres.InfoSchemaImpl{}.GetToDdl()
-	case constants.SQLSERVER:
-		toddl = sqlserver.InfoSchemaImpl{}.GetToDdl()
-	case constants.ORACLE:
-		toddl = oracle.InfoSchemaImpl{}.GetToDdl()
 	case constants.MYSQLDUMP:
 		toddl = mysql.DbDumpImpl{}.GetToDdl()
 	case constants.PGDUMP:
@@ -1447,36 +1426,6 @@ func initializeTypeMap() {
 		ty, _ := toddl.ToSpannerType(sessionState.Conv, "", srcType, false)
 		postgresDefaultTypeMap[srcTypeName] = ty
 		postgresTypeMap[srcTypeName] = l
-	}
-
-	// Initialize sqlserverTypeMap.
-	toddl = sqlserver.InfoSchemaImpl{}.GetToDdl()
-	for _, srcTypeName := range []string{"int", "tinyint", "smallint", "bigint", "bit", "float", "real", "numeric", "decimal", "money", "smallmoney", "char", "nchar", "varchar", "nvarchar", "text", "ntext", "date", "datetime", "datetime2", "smalldatetime", "datetimeoffset", "time", "timestamp", "rowversion", "binary", "varbinary", "image", "xml", "geography", "geometry", "uniqueidentifier", "sql_variant", "hierarchyid"} {
-		var l []types.TypeIssue
-		srcType := schema.MakeType()
-		srcType.Name = srcTypeName
-		for _, spType := range []string{ddl.Bool, ddl.Bytes, ddl.Date, ddl.Float32, ddl.Float64, ddl.Int64, ddl.String, ddl.Timestamp, ddl.Numeric, ddl.JSON} {
-			ty, issues := toddl.ToSpannerType(sessionState.Conv, spType, srcType, false)
-			l = addTypeToList(ty.Name, spType, issues, l)
-		}
-		ty, _ := toddl.ToSpannerType(sessionState.Conv, "", srcType, false)
-		sqlserverDefaultTypeMap[srcTypeName] = ty
-		sqlserverTypeMap[srcTypeName] = l
-	}
-
-	// Initialize oracleTypeMap.
-	toddl = oracle.InfoSchemaImpl{}.GetToDdl()
-	for _, srcTypeName := range []string{"NUMBER", "BFILE", "BLOB", "CHAR", "CLOB", "DATE", "BINARY_DOUBLE", "BINARY_FLOAT", "FLOAT", "LONG", "RAW", "LONG RAW", "NCHAR", "NVARCHAR2", "VARCHAR", "VARCHAR2", "NCLOB", "ROWID", "UROWID", "XMLTYPE", "TIMESTAMP", "INTERVAL", "SDO_GEOMETRY"} {
-		var l []types.TypeIssue
-		srcType := schema.MakeType()
-		srcType.Name = srcTypeName
-		for _, spType := range []string{ddl.Bool, ddl.Bytes, ddl.Date, ddl.Float32, ddl.Float64, ddl.Int64, ddl.String, ddl.Timestamp, ddl.Numeric, ddl.JSON} {
-			ty, issues := toddl.ToSpannerType(sessionState.Conv, spType, srcType, false)
-			l = addTypeToList(ty.Name, spType, issues, l)
-		}
-		ty, _ := toddl.ToSpannerType(sessionState.Conv, "", srcType, false)
-		oracleDefaultTypeMap[srcTypeName] = ty
-		oracleTypeMap[srcTypeName] = l
 	}
 }
 

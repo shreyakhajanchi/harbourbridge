@@ -24,7 +24,6 @@ import (
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/internal"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/profiles"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/common"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/csv"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/spanner/writer"
 	"github.com/stretchr/testify/mock"
 )
@@ -69,10 +68,6 @@ func (msads *MockDataFromSource) dataFromDatabase(ctx context.Context, migration
 }
 func (msads *MockDataFromSource) dataFromDump(driver string, config writer.BatchWriterConfig, ioHelper *utils.IOStreams, client *sp.Client, conv *internal.Conv, dataOnly bool, processDump ProcessDumpByDialectInterface, populateDataConv PopulateDataConvInterface) (*writer.BatchWriter, error) {
 	args := msads.Called(driver, config, ioHelper, client, conv, dataOnly, processDump, populateDataConv)
-	return args.Get(0).(*writer.BatchWriter), args.Error(1)
-}
-func (msads *MockDataFromSource) dataFromCSV(ctx context.Context, sourceProfile profiles.SourceProfile, targetProfile profiles.TargetProfile, config writer.BatchWriterConfig, conv *internal.Conv, client *sp.Client, pdc PopulateDataConvInterface, csv csv.CsvInterface) (*writer.BatchWriter, error) {
-	args := msads.Called(ctx, sourceProfile, targetProfile, config, conv, client, pdc, csv)
 	return args.Get(0).(*writer.BatchWriter), args.Error(1)
 }
 

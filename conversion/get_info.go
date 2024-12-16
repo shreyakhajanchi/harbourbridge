@@ -19,22 +19,14 @@ import (
 	"database/sql"
 	"fmt"
 	"net"
-	"strings"
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/common/constants"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/common/utils"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/profiles"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/common"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/dynamodb"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/mysql"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/oracle"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/postgres"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/sqlserver"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	dydb "github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -105,25 +97,25 @@ func (gi *GetInfoImpl) GetInfoSchemaFromCloudSQL(migrationProjectId string, sour
 		}, nil
 	case constants.POSTGRES:
 		d, err := cloudsqlconn.NewDialer(context.Background(), cloudsqlconn.WithIAMAuthN())
-        if err != nil {
-                return nil, fmt.Errorf("cloudsqlconn.NewDialer: %w", err)
-        }
-        var opts []cloudsqlconn.DialOption
+		if err != nil {
+			return nil, fmt.Errorf("cloudsqlconn.NewDialer: %w", err)
+		}
+		var opts []cloudsqlconn.DialOption
 
-        dsn := fmt.Sprintf("user=%s database=%s", sourceProfile.ConnCloudSQL.Pg.User, sourceProfile.ConnCloudSQL.Pg.Db)
-        config, err := pgx.ParseConfig(dsn)
-        if err != nil {
-                return nil, err
-        }
+		dsn := fmt.Sprintf("user=%s database=%s", sourceProfile.ConnCloudSQL.Pg.User, sourceProfile.ConnCloudSQL.Pg.Db)
+		config, err := pgx.ParseConfig(dsn)
+		if err != nil {
+			return nil, err
+		}
 		instanceName := fmt.Sprintf("%s:%s:%s", sourceProfile.ConnCloudSQL.Pg.Project, sourceProfile.ConnCloudSQL.Pg.Region, sourceProfile.ConnCloudSQL.Pg.InstanceName)
-        config.DialFunc = func(ctx context.Context, network, instance string) (net.Conn, error) {
-                return d.Dial(ctx, instanceName, opts...)
-        }
-        dbURI := stdlib.RegisterConnConfig(config)
-        db, err := sql.Open("pgx", dbURI)
-        if err != nil {
-                return nil, fmt.Errorf("sql.Open: %w", err)
-        }
+		config.DialFunc = func(ctx context.Context, network, instance string) (net.Conn, error) {
+			return d.Dial(ctx, instanceName, opts...)
+		}
+		dbURI := stdlib.RegisterConnConfig(config)
+		db, err := sql.Open("pgx", dbURI)
+		if err != nil {
+			return nil, fmt.Errorf("sql.Open: %w", err)
+		}
 		temp := false
 		return postgres.InfoSchemaImpl{
 			Db:                 db,
@@ -170,33 +162,6 @@ func (gi *GetInfoImpl) GetInfoSchema(migrationProjectId string, sourceProfile pr
 			TargetProfile:      targetProfile,
 			IsSchemaUnique:     &temp, //this is a workaround to set a bool pointer
 		}, nil
-	case constants.DYNAMODB:
-		mySession := session.Must(session.NewSession())
-		dydbClient := dydb.New(mySession, connectionConfig.(*aws.Config))
-		var dydbStreamsClient *dynamodbstreams.DynamoDBStreams
-		if sourceProfile.Conn.Streaming {
-			newSession := session.Must(session.NewSession())
-			dydbStreamsClient = dynamodbstreams.New(newSession, connectionConfig.(*aws.Config))
-		}
-		return dynamodb.InfoSchemaImpl{
-			DynamoClient:        dydbClient,
-			SampleSize:          profiles.GetSchemaSampleSize(sourceProfile),
-			DynamoStreamsClient: dydbStreamsClient,
-		}, nil
-	case constants.SQLSERVER:
-		db, err := sql.Open(driver, connectionConfig.(string))
-		dbName := getDbNameFromSQLConnectionStr(driver, connectionConfig.(string))
-		if err != nil {
-			return nil, err
-		}
-		return sqlserver.InfoSchemaImpl{DbName: dbName, Db: db}, nil
-	case constants.ORACLE:
-		db, err := sql.Open(driver, connectionConfig.(string))
-		dbName := getDbNameFromSQLConnectionStr(driver, connectionConfig.(string))
-		if err != nil {
-			return nil, err
-		}
-		return oracle.InfoSchemaImpl{DbName: strings.ToUpper(dbName), Db: db, MigrationProjectId: migrationProjectId, SourceProfile: sourceProfile, TargetProfile: targetProfile}, nil
 	default:
 		return nil, fmt.Errorf("driver %s not supported", driver)
 	}

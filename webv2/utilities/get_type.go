@@ -21,9 +21,7 @@ import (
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/internal"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/common"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/mysql"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/oracle"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/postgres"
-	"github.com/GoogleCloudPlatform/spanner-migration-tool/sources/sqlserver"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/spanner/ddl"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/webv2/session"
 )
@@ -43,12 +41,6 @@ func GetType(conv *internal.Conv, newType, tableId, colId string) (ddl.CreateTab
 		ty, issues = toddl.ToSpannerType(conv, newType, srcCol.Type, isPk)
 	case constants.PGDUMP, constants.POSTGRES:
 		toddl = postgres.InfoSchemaImpl{}.GetToDdl()
-		ty, issues = toddl.ToSpannerType(conv, newType, srcCol.Type, isPk)
-	case constants.SQLSERVER:
-		toddl = sqlserver.InfoSchemaImpl{}.GetToDdl()
-		ty, issues = toddl.ToSpannerType(conv, newType, srcCol.Type, isPk)
-	case constants.ORACLE:
-		toddl = oracle.InfoSchemaImpl{}.GetToDdl()
 		ty, issues = toddl.ToSpannerType(conv, newType, srcCol.Type, isPk)
 	default:
 		return sp, ty, fmt.Errorf("driver : '%s' is not supported", sessionState.Driver)

@@ -3,6 +3,7 @@
 // 	protoc-gen-go v1.27.1
 // 	protoc        v3.19.4
 // source: migration_data.proto
+//coverage:ignore file
 
 package migration
 

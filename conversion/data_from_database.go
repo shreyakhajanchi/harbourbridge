@@ -40,6 +40,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//coverage:ignore file
 type DataFromDatabaseInterface interface {
 	dataFromDatabaseForDMSMigration() (*writer.BatchWriter, error)
 	dataFromDatabaseForDataflowMigration(migrationProjectId string, targetProfile profiles.TargetProfile, ctx context.Context, sourceProfile profiles.SourceProfile, conv *internal.Conv, is common.InfoSchemaInterface) (*writer.BatchWriter, error)

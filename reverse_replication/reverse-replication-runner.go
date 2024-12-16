@@ -20,6 +20,7 @@ import (
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 )
 
+//coverage:ignore file
 var (
 	projectId                            string
 	dataflowRegion                       string

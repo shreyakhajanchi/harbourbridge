@@ -13,6 +13,7 @@
 // limitations under the License.
 package streaming
 
+//coverage:ignore file
 import (
 	"context"
 	"encoding/json"

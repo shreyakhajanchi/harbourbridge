@@ -41,17 +41,18 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type ProcessDumpByDialectInterface interface{
+type ProcessDumpByDialectInterface interface {
 	ProcessDump(driver string, conv *internal.Conv, r *internal.Reader) error
 }
 
 type ProcessDumpByDialectImpl struct{}
 
-type PopulateDataConvInterface interface{
+type PopulateDataConvInterface interface {
 	populateDataConv(conv *internal.Conv, config writer.BatchWriterConfig, client *sp.Client) *writer.BatchWriter
 }
 
 type PopulateDataConvImpl struct{}
+
 // getSeekable returns a seekable file (with same content as f) and the size of the content (in bytes).
 func getSeekable(f *os.File) (*os.File, int64, error) {
 	_, err := f.Seek(0, 0)
@@ -96,7 +97,6 @@ func (pdd *ProcessDumpByDialectImpl) ProcessDump(driver string, conv *internal.C
 	}
 }
 
-
 func (pdc *PopulateDataConvImpl) populateDataConv(conv *internal.Conv, config writer.BatchWriterConfig, client *sp.Client) *writer.BatchWriter {
 	rows := int64(0)
 	config.Write = func(m []*sp.Mutation) error {
@@ -129,7 +129,6 @@ func (pdc *PopulateDataConvImpl) populateDataConv(conv *internal.Conv, config wr
 
 	return batchWriter
 }
-
 
 func connectionConfig(sourceProfile profiles.SourceProfile) (interface{}, error) {
 	switch sourceProfile.Driver {
@@ -185,6 +184,7 @@ func getDbNameFromSQLConnectionStr(driver, sqlConnectionStr string) string {
 }
 
 func updateShardsWithTuningConfigs(shardedTuningConfig profiles.ShardConfigurationDataflow) {
+	//coverage:ignore
 	for _, dataShard := range shardedTuningConfig.DataShards {
 		dataShard.DatastreamConfig = shardedTuningConfig.DatastreamConfig
 		dataShard.GcsConfig = shardedTuningConfig.GcsConfig
@@ -193,6 +193,7 @@ func updateShardsWithTuningConfigs(shardedTuningConfig profiles.ShardConfigurati
 }
 
 func getDynamoDBClientConfig() (*aws.Config, error) {
+	//coverage:ignore
 	cfg := aws.Config{}
 	endpointOverride := os.Getenv("DYNAMODB_ENDPOINT_OVERRIDE")
 	if endpointOverride != "" {

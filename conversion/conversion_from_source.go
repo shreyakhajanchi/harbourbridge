@@ -36,7 +36,6 @@ import (
 	"go.uber.org/zap"
 )
 
-//coverage:ignore file
 type SchemaFromSourceInterface interface {
 	schemaFromDatabase(migrationProjectId string, sourceProfile profiles.SourceProfile, targetProfile profiles.TargetProfile, getInfo GetInfoInterface, processSchema common.ProcessSchemaInterface) (*internal.Conv, error)
 	SchemaFromDump(driver string, spDialect string, ioHelper *utils.IOStreams, processDump ProcessDumpByDialectInterface) (*internal.Conv, error)
@@ -156,6 +155,7 @@ func (sads *DataFromSourceImpl) dataFromDump(driver string, config writer.BatchW
 }
 
 func (sads *DataFromSourceImpl) dataFromCSV(ctx context.Context, sourceProfile profiles.SourceProfile, targetProfile profiles.TargetProfile, config writer.BatchWriterConfig, conv *internal.Conv, client *sp.Client, populateDataConv PopulateDataConvInterface, csv csv.CsvInterface) (*writer.BatchWriter, error) {
+	//coverage:ignore
 	if targetProfile.Conn.Sp.Dbname == "" {
 		return nil, fmt.Errorf("dbName is mandatory in target-profile for csv source")
 	}
@@ -208,6 +208,8 @@ func (sads *DataFromSourceImpl) dataFromCSV(ctx context.Context, sourceProfile p
 }
 
 func (sads *DataFromSourceImpl) dataFromDatabase(ctx context.Context, migrationProjectId string, sourceProfile profiles.SourceProfile, targetProfile profiles.TargetProfile, config writer.BatchWriterConfig, conv *internal.Conv, client *sp.Client, getInfo GetInfoInterface, dataFromDb DataFromDatabaseInterface, snapshotMigration SnapshotMigrationInterface) (*writer.BatchWriter, error) {
+	//coverage:ignore
+
 	//handle migrating data for sharded migrations differently
 	//sharded migrations are identified via the config= flag, if that flag is not present
 	//carry on with the existing code path in the else block

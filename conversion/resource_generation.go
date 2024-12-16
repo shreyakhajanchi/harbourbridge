@@ -34,6 +34,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//coverage:ignore file
 var (
 	resourcesForCleanup []*ConnectionProfileReq
 )

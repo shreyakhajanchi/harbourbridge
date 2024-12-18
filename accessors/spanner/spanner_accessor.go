@@ -41,7 +41,7 @@ var (
 	// This number should not be too high so as to not hit the AdminQuota limit.
 	// AdminQuota limits are mentioned here: https://cloud.google.com/spanner/quotas#administrative_limits
 	// If facing a quota limit error, consider reducing this value.
-	MaxWorkers = 50
+	MaxWorkers = 5000
 )
 
 // The SpannerAccessor provides methods that internally use a spanner client (can be adminClient/databaseclient/instanceclient etc).
@@ -318,9 +318,11 @@ func (sp *SpannerAccessorImpl) UpdateDatabase(ctx context.Context, dbURI string,
 	// Foreign Keys are set to false since we create them post data migration.
 	schema := ddl.GetDDL(ddl.Config{Comments: false, ProtectIds: true, Tables: true, ForeignKeys: false, SpDialect: conv.SpDialect, Source: driver}, conv.SpSchema, conv.SpSequences)
 	req := &adminpb.UpdateDatabaseDdlRequest{
-		Database:   dbURI,
-		Statements: schema,
+		Database:       dbURI,
+		Statements:     schema,
+		ThroughputMode: false,
 	}
+	println("request", req)
 	// Update queries for postgres as target db return response after more
 	// than 1 min for large schemas, therefore, timeout is specified as 5 minutes
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -410,7 +412,8 @@ func (sp *SpannerAccessorImpl) UpdateDDLForeignKeys(ctx context.Context, dbURI s
 			However, setting it to a very high value might lead to exceeding the admin quota limit. Spanner migration tool tries to stay under the
 			admin quota limit by spreading the FK creation requests over time.`)
 	}
-	msg := fmt.Sprintf("Updating schema of database %s with foreign key constraints ...", dbURI)
+	msg := fmt.Sprintf("Updating schema of database %s with foreign key constraints ...\n", dbURI)
+	println("start time", time.Now().String())
 	conv.Audit.Progress = *internal.NewProgress(int64(len(fkStmts)), msg, internal.Verbose(), true, int(internal.ForeignKeyUpdateInProgress))
 
 	workers := make(chan int, MaxWorkers)
@@ -436,12 +439,15 @@ func (sp *SpannerAccessorImpl) UpdateDDLForeignKeys(ctx context.Context, dbURI s
 				workers <- workerID
 			}()
 			internal.VerbosePrintf("Submitting new FK create request: %s\n", fkStmt)
-			logger.Log.Debug("Submitting new FK create request", zap.String("fkStmt", fkStmt))
+			//logger.Log.Debug("Submitting new FK create request", zap.String("fkStmt", fkStmt))
 
-			op, err := sp.AdminClient.UpdateDatabaseDdl(ctx, &adminpb.UpdateDatabaseDdlRequest{
-				Database:   dbURI,
-				Statements: []string{fkStmt},
-			})
+			req := &adminpb.UpdateDatabaseDdlRequest{
+				Database:       dbURI,
+				Statements:     []string{fkStmt},
+				ThroughputMode: false,
+			}
+
+			op, err := sp.AdminClient.UpdateDatabaseDdl(ctx, req)
 			if err != nil {
 				logger.Log.Debug("Can't add foreign key with statement:" + fkStmt + "\n due to error:" + err.Error() + " Skipping this foreign key...\n")
 				conv.Unexpected(fmt.Sprintf("Can't add foreign key with statement %s: %s", fkStmt, err))
@@ -453,7 +459,7 @@ func (sp *SpannerAccessorImpl) UpdateDDLForeignKeys(ctx context.Context, dbURI s
 				return
 			}
 			internal.VerbosePrintln("Updated schema with statement: " + fkStmt)
-			logger.Log.Debug("Updated schema with statement", zap.String("fkStmt", fkStmt))
+			//logger.Log.Debug("Updated schema with statement", zap.String("fkStmt", fkStmt))
 		}(fkStmt, workerID)
 		// Send out an FK creation request every second, with total of maxWorkers request being present in a batch.
 		time.Sleep(time.Second)
@@ -462,6 +468,8 @@ func (sp *SpannerAccessorImpl) UpdateDDLForeignKeys(ctx context.Context, dbURI s
 	for i := 1; i <= MaxWorkers; i++ {
 		<-workers
 	}
+
+	println("end time", time.Now().String())
 	conv.Audit.Progress.UpdateProgress("Foreign key update complete.", 100, internal.ForeignKeyUpdateComplete)
 	conv.Audit.Progress.Done()
 }
@@ -490,6 +498,6 @@ func (sp *SpannerAccessorImpl) ValidateDML(ctx context.Context, query string) (b
 	}
 }
 
-func (sp *SpannerAccessorImpl) Refresh(ctx context.Context, dbURI string) () {
+func (sp *SpannerAccessorImpl) Refresh(ctx context.Context, dbURI string) {
 	sp.SpannerClient.Refresh(ctx, dbURI)
 }

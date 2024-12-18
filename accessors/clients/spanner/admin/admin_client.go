@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	database "cloud.google.com/go/spanner/admin/database/apiv1"
+	"google.golang.org/api/option"
 )
 
 var once sync.Once
@@ -32,7 +33,9 @@ func GetOrCreateClient(ctx context.Context) (*database.DatabaseAdminClient, erro
 	var err error
 	if spannerAdminClient == nil {
 		once.Do(func() {
-			spannerAdminClient, err = newDatabaseAdminClient(ctx)
+			endpoint := "staging-wrenchworks.sandbox.googleapis.com:443"
+			options := []option.ClientOption{option.WithEndpoint(endpoint)}
+			spannerAdminClient, err = newDatabaseAdminClient(ctx, options...)
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create spanner admin client: %v", err)

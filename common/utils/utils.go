@@ -234,7 +234,10 @@ func (gui *GetUtilInfoImpl) GetInstance(ctx context.Context, project string, out
 }
 
 func getInstances(ctx context.Context, project string) ([]string, error) {
-	instanceClient, err := instance.NewInstanceAdminClient(ctx)
+	endpoint := "staging-wrenchworks.sandbox.googleapis.com:443"
+	options := []option.ClientOption{option.WithEndpoint(endpoint)}
+
+	instanceClient, err := instance.NewInstanceAdminClient(ctx, options...)
 	if err != nil {
 		return nil, parse.AnalyzeError(err, fmt.Sprintf("projects/%s", project))
 	}
@@ -387,7 +390,10 @@ func NewInstanceAdminClient(ctx context.Context) (*instance.InstanceAdminClient,
 	if endpoint := os.Getenv("SPANNER_API_ENDPOINT"); endpoint != "" {
 		return instance.NewInstanceAdminClient(ctx, option.WithEndpoint(endpoint))
 	}
-	return instance.NewInstanceAdminClient(ctx)
+	endpoint := "staging-wrenchworks.sandbox.googleapis.com:443"
+	options := []option.ClientOption{option.WithEndpoint(endpoint)}
+
+	return instance.NewInstanceAdminClient(ctx, options...)
 }
 
 func SumMapValues(m map[string]int64) int64 {

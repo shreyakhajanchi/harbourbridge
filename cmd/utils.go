@@ -171,6 +171,9 @@ func migrateSchema(ctx context.Context, targetProfile profiles.TargetProfile, so
 	}
 	metricsPopulation(ctx, sourceProfile.Driver, conv)
 	conv.Audit.Progress.UpdateProgress("Schema migration complete.", completionPercentage, internal.SchemaMigrationComplete)
+
+	spA.UpdateDDLForeignKeys(ctx, dbURI, conv, sourceProfile.Driver, sourceProfile.Config.ConfigType)
+
 	return nil
 }
 

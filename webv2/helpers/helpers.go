@@ -23,6 +23,7 @@ import (
 	database "cloud.google.com/go/spanner/admin/database/apiv1"
 	spanneraccessor "github.com/GoogleCloudPlatform/spanner-migration-tool/accessors/spanner"
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/common/constants"
+	"google.golang.org/api/option"
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 )
 
@@ -108,7 +109,10 @@ func createDatabase(ctx context.Context, uri string, dbExists bool) error {
 	spInstance := matches[1]
 	dbName := matches[2]
 
-	adminClient, err := database.NewDatabaseAdminClient(ctx)
+	endpoint := "staging-wrenchworks.sandbox.googleapis.com:443"
+	options := []option.ClientOption{option.WithEndpoint(endpoint)}
+
+	adminClient, err := database.NewDatabaseAdminClient(ctx, options...)
 	if err != nil {
 		return err
 	}

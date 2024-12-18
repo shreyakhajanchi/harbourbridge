@@ -50,6 +50,7 @@ import (
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/webv2/types"
 	utilities "github.com/GoogleCloudPlatform/spanner-migration-tool/webv2/utilities"
 	"github.com/pkg/browser"
+	"google.golang.org/api/option"
 	instancepb "google.golang.org/genproto/googleapis/spanner/admin/instance/v1"
 
 	"github.com/GoogleCloudPlatform/spanner-migration-tool/webv2/session"
@@ -556,7 +557,10 @@ func getSourceDestinationSummary(w http.ResponseWriter, r *http.Request) {
 	sessionSummary.SourceIndexCount = sourceIndexCount
 	sessionSummary.SpannerIndexCount = spannerIndexCount
 	ctx := context.Background()
-	instanceClient, err := instance.NewInstanceAdminClient(ctx)
+	endpoint := "staging-wrenchworks.sandbox.googleapis.com:443"
+	options := []option.ClientOption{option.WithEndpoint(endpoint)}
+
+	instanceClient, err := instance.NewInstanceAdminClient(ctx, options...)
 	if err != nil {
 		log.Println("instance admin client creation error")
 		http.Error(w, fmt.Sprintf("Error while creating instance admin client : %v", err), http.StatusBadRequest)
